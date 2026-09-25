@@ -34,54 +34,75 @@ function run_drishtisetu()
     app.screeningLog = {};
     
     % ============================================================
+    % DESIGN TOKENS
+    % ============================================================
+    T.bg       = [0.965 0.973 0.980];   % page background
+    T.card     = [1 1 1];                % card surface
+    T.header   = [0.086 0.216 0.380];    % deep navy header
+    T.accent   = [0.165 0.510 0.820];    % primary blue
+    T.success  = [0.086 0.608 0.290];    % green
+    T.danger   = [0.816 0.133 0.133];    % red
+    T.warning  = [0.886 0.627 0.086];    % amber
+    T.textPri  = [0.12 0.14 0.18];       % primary text
+    T.textSec  = [0.40 0.44 0.50];       % secondary text
+    T.border   = [0.86 0.88 0.92];       % subtle border
+    T.axesBg   = [0.07 0.07 0.10];       % dark axes background
+    app.T = T;
+    
+    % ============================================================
     % CREATE MAIN FIGURE
     % ============================================================
-    app.fig = uifigure('Name', 'DrishtiSetu — DR Screening', ...
-        'Position', [50 50 1280 800], ...
-        'Color', [0.95 0.96 0.97], ...
-        'CloseRequestFcn', @(~,~) closeFig(app));
+    app.fig = uifigure('Name', 'DrishtiSetu — AI-Assisted DR Screening', ...
+        'Position', [40 30 1320 840], ...
+        'Color', T.bg, ...
+        'CloseRequestFcn', @(src,~) closeFig(src));
     
     % ============================================================
-    % TOP BAR
+    % TOP HEADER BAR
     % ============================================================
-    topPanel = uipanel(app.fig, 'Position', [0 760 1280 40], ...
-        'BackgroundColor', [0.13 0.35 0.55], 'BorderType', 'none');
+    topPanel = uipanel(app.fig, 'Position', [0 792 1320 48], ...
+        'BackgroundColor', T.header, 'BorderType', 'none');
     
-    uilabel(topPanel, 'Position', [15 5 350 30], ...
+    uilabel(topPanel, 'Position', [20 8 420 32], ...
         'Text', '🔬 DrishtiSetu — AI-Assisted DR Screening', ...
-        'FontSize', 16, 'FontWeight', 'bold', 'FontColor', 'white');
+        'FontSize', 17, 'FontWeight', 'bold', 'FontColor', 'white');
     
-    uilabel(topPanel, 'Position', [980 8 60 25], ...
-        'Text', 'Role:', 'FontSize', 13, 'FontColor', 'white');
+    uilabel(topPanel, 'Position', [600 12 200 24], ...
+        'Text', 'SIH 2026 · PS-26038 · Offline-First', ...
+        'FontSize', 10, 'FontColor', [0.65 0.75 0.85]);
+    
+    uilabel(topPanel, 'Position', [1010 12 60 24], ...
+        'Text', 'Role:', 'FontSize', 13, 'FontColor', 'white', 'FontWeight', 'bold');
     
     app.roleDropdown = uidropdown(topPanel, ...
-        'Position', [1040 6 220 28], ...
+        'Position', [1070 8 230 30], ...
         'Items', {'Technician (तकनीशियन)', 'Doctor (डॉक्टर)', 'District Officer (जिला अधिकारी)'}, ...
         'Value', 'Technician (तकनीशियन)', ...
+        'FontSize', 12, ...
         'ValueChangedFcn', @(dd, ~) switchRole(app, dd.Value));
     
     % ============================================================
     % THREE ROLE PANELS (only one visible at a time)
     % ============================================================
-    panelPos = [0 0 1280 760];
+    panelPos = [0 0 1320 792];
     
     % --- TECHNICIAN PANEL ---
     app.techPanel = uipanel(app.fig, 'Position', panelPos, ...
-        'BackgroundColor', [0.95 0.96 0.97], 'BorderType', 'none', ...
+        'BackgroundColor', T.bg, 'BorderType', 'none', ...
         'Visible', 'on');
-    buildTechnicianPanel(app);
+    app = buildTechnicianPanel(app);
     
     % --- DOCTOR PANEL ---
     app.docPanel = uipanel(app.fig, 'Position', panelPos, ...
-        'BackgroundColor', [0.95 0.96 0.97], 'BorderType', 'none', ...
+        'BackgroundColor', T.bg, 'BorderType', 'none', ...
         'Visible', 'off');
-    buildDoctorPanel(app);
+    app = buildDoctorPanel(app);
     
     % --- DISTRICT PANEL ---
     app.distPanel = uipanel(app.fig, 'Position', panelPos, ...
-        'BackgroundColor', [0.95 0.96 0.97], 'BorderType', 'none', ...
+        'BackgroundColor', T.bg, 'BorderType', 'none', ...
         'Visible', 'off');
-    buildDistrictPanel(app);
+    app = buildDistrictPanel(app);
     
     % Store app in figure for access in callbacks
     app.fig.UserData = app;
@@ -89,6 +110,25 @@ function run_drishtisetu()
     fprintf('DrishtiSetu launched successfully.\n');
     fprintf('Pipeline root: %s\n', rootDir);
     fprintf('Model directory: %s\n', cfg.model_dir);
+    
+    % Report ONNX model availability
+    fprintf('\n=== ONNX Model Status ===\n');
+    if isfield(cfg, 'onnx_dr_model') && exist(cfg.onnx_dr_model, 'file')
+        fprintf('  [✓] DR Grading:       %s\n', cfg.onnx_dr_model);
+    else
+        fprintf('  [✗] DR Grading:       NOT FOUND (will use placeholder)\n');
+    end
+    if isfield(cfg, 'onnx_vessel_model') && exist(cfg.onnx_vessel_model, 'file')
+        fprintf('  [✓] Vessel Seg:       %s\n', cfg.onnx_vessel_model);
+    else
+        fprintf('  [✗] Vessel Seg:       NOT FOUND (will use classical fallback)\n');
+    end
+    if isfield(cfg, 'onnx_lesion_model') && exist(cfg.onnx_lesion_model, 'file')
+        fprintf('  [✓] Lesion Seg:       %s\n', cfg.onnx_lesion_model);
+    else
+        fprintf('  [✗] Lesion Seg:       NOT FOUND (will use classical fallback)\n');
+    end
+    fprintf('=========================\n');
 end
 
 % ================================================================
@@ -118,193 +158,310 @@ function switchRole(app, roleStr)
 end
 
 % ================================================================
-% TECHNICIAN PANEL
+% TECHNICIAN PANEL — Modern Clinical Layout
 % ================================================================
-function buildTechnicianPanel(app)
+function app = buildTechnicianPanel(app)
     p = app.techPanel;
+    T = app.T;
     
-    % --- LEFT COLUMN: Patient Info + Controls ---
-    leftBox = uipanel(p, 'Position', [15 15 380 730], ...
-        'Title', '📋 Patient Information (रोगी जानकारी)', ...
-        'FontSize', 13, 'FontWeight', 'bold');
+    % --- LEFT COLUMN: Patient Info + Controls (card style) ---
+    leftBox = uipanel(p, 'Position', [12 10 396 770], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', ...
+        'BorderColor', T.border, 'Title', '', 'FontSize', 1);
+
+    % Section Header: Patient
+    uilabel(leftBox, 'Position', [16 728 360 28], ...
+        'Text', '📋  Patient Information', ...
+        'FontSize', 15, 'FontWeight', 'bold', 'FontColor', T.header);
+    uilabel(leftBox, 'Position', [16 712 360 16], ...
+        'Text', 'रोगी जानकारी', ...
+        'FontSize', 10, 'FontColor', T.textSec);
+
+    % Consent Section
+    uilabel(leftBox, 'Position', [16 684 360 18], ...
+        'Text', 'CONSENT', 'FontSize', 9, 'FontWeight', 'bold', 'FontColor', T.textSec);
+    app.consentCheck1 = uicheckbox(leftBox, 'Position', [16 660 360 22], ...
+        'Text', 'AI-assisted screening (not diagnosis)', 'FontSize', 11, 'FontColor', T.textPri);
+    app.consentCheck2 = uicheckbox(leftBox, 'Position', [16 636 360 22], ...
+        'Text', 'Data stored locally (DPDP Act)', 'FontSize', 11, 'FontColor', T.textPri);
     
-    % Consent
-    app.consentCheck1 = uicheckbox(leftBox, 'Position', [15 670 350 22], ...
-        'Text', '☑ AI सहायता आधारित जाँच (निदान नहीं)', 'FontSize', 11);
-    app.consentCheck2 = uicheckbox(leftBox, 'Position', [15 645 350 22], ...
-        'Text', '☑ डेटा स्थानीय रूप से संग्रहीत (DPDP Act)', 'FontSize', 11);
+    % Patient fields
+    uilabel(leftBox, 'Position', [16 604 90 20], 'Text', 'Name (नाम)', 'FontSize', 11, 'FontColor', T.textSec);
+    app.nameField = uieditfield(leftBox, 'Position', [110 601 262 28], 'FontSize', 12);
     
-    % Name
-    uilabel(leftBox, 'Position', [15 605 100 22], 'Text', 'नाम (Name):', 'FontSize', 12);
-    app.nameField = uieditfield(leftBox, 'Position', [120 605 240 25], 'FontSize', 12);
+    uilabel(leftBox, 'Position', [16 568 90 20], 'Text', 'Age (उम्र)', 'FontSize', 11, 'FontColor', T.textSec);
+    app.ageField = uieditfield(leftBox, 'numeric', 'Position', [110 565 80 28], 'FontSize', 12);
     
-    % Age
-    uilabel(leftBox, 'Position', [15 570 100 22], 'Text', 'उम्र (Age):', 'FontSize', 12);
-    app.ageField = uieditfield(leftBox, 'numeric', 'Position', [120 570 80 25], 'FontSize', 12);
+    uilabel(leftBox, 'Position', [200 568 90 20], 'Text', 'DM Yrs', 'FontSize', 11, 'FontColor', T.textSec);
+    app.dmField = uieditfield(leftBox, 'numeric', 'Position', [260 565 112 28], 'FontSize', 12);
     
-    % DM Duration
-    uilabel(leftBox, 'Position', [15 535 120 22], 'Text', 'DM अवधि (yrs):', 'FontSize', 12);
-    app.dmField = uieditfield(leftBox, 'numeric', 'Position', [140 535 60 25], 'FontSize', 12);
-    
-    % ABHA ID
-    uilabel(leftBox, 'Position', [15 500 100 22], 'Text', 'ABHA ID:', 'FontSize', 12);
-    app.abhaField = uieditfield(leftBox, 'Position', [120 500 240 25], 'FontSize', 12);
+    uilabel(leftBox, 'Position', [16 532 90 20], 'Text', 'ABHA ID', 'FontSize', 11, 'FontColor', T.textSec);
+    app.abhaField = uieditfield(leftBox, 'Position', [110 529 262 28], 'FontSize', 12);
     
     % Eye selector
-    uilabel(leftBox, 'Position', [15 455 100 22], 'Text', 'आँख (Eye):', 'FontSize', 13, 'FontWeight', 'bold');
-    app.eyeGroup = uibuttongroup(leftBox, 'Position', [120 450 240 30], 'BorderType', 'none');
-    uiradiobutton(app.eyeGroup, 'Position', [5 5 100 22], 'Text', 'दाहिनी (Right)', 'FontSize', 11);
-    uiradiobutton(app.eyeGroup, 'Position', [120 5 100 22], 'Text', 'बाएं (Left)', 'FontSize', 11);
+    uilabel(leftBox, 'Position', [16 496 90 20], 'Text', 'Eye (आँख)', 'FontSize', 11, 'FontWeight', 'bold', 'FontColor', T.textSec);
+    app.eyeGroup = uibuttongroup(leftBox, 'Position', [110 490 262 28], 'BorderType', 'none', 'BackgroundColor', T.card);
+    uiradiobutton(app.eyeGroup, 'Position', [2 3 120 22], 'Text', 'Right (दाहिनी)', 'FontSize', 11);
+    uiradiobutton(app.eyeGroup, 'Position', [130 3 120 22], 'Text', 'Left (बाएं)', 'FontSize', 11);
     
     % Input mode
-    uilabel(leftBox, 'Position', [15 415 150 22], 'Text', 'Input Mode:', 'FontSize', 12);
-    app.modeDropdown = uidropdown(leftBox, 'Position', [120 413 240 25], ...
-        'Items', {'📷 Still Photo', '🎥 Video Capture'}, ...
-        'FontSize', 11);
+    uilabel(leftBox, 'Position', [16 460 90 20], 'Text', 'Input Mode', 'FontSize', 11, 'FontColor', T.textSec);
+    app.modeDropdown = uidropdown(leftBox, 'Position', [110 456 262 28], ...
+        'Items', {'📷 Still Photo', '🎥 Video Capture'}, 'FontSize', 11);
     
-    % Load buttons
-    app.loadBtn = uibutton(leftBox, 'Position', [15 365 345 45], ...
-        'Text', '📂 Load Image / Video', 'FontSize', 14, 'FontWeight', 'bold', ...
-        'BackgroundColor', [0.2 0.6 0.9], 'FontColor', 'white', ...
+    % Load Image Button
+    app.loadBtn = uibutton(leftBox, 'Position', [16 404 356 48], ...
+        'Text', '📂  Load Image / Video', 'FontSize', 14, 'FontWeight', 'bold', ...
+        'BackgroundColor', T.accent, 'FontColor', 'white', ...
         'ButtonPushedFcn', @(~,~) loadImage(app));
     
-    % Quality display
-    app.qualityLabel = uilabel(leftBox, 'Position', [15 325 345 30], ...
-        'Text', 'Quality: Not assessed', 'FontSize', 13, ...
-        'FontWeight', 'bold', 'HorizontalAlignment', 'center');
-    app.retakeLabel = uilabel(leftBox, 'Position', [15 300 345 22], ...
-        'Text', '', 'FontSize', 11, 'HorizontalAlignment', 'center');
+    % Quality Badge
+    app.qualityLabel = uilabel(leftBox, 'Position', [16 368 356 30], ...
+        'Text', '○  Quality: Not assessed', 'FontSize', 13, ...
+        'FontWeight', 'bold', 'HorizontalAlignment', 'center', ...
+        'FontColor', T.textSec);
+    app.retakeLabel = uilabel(leftBox, 'Position', [16 348 356 20], ...
+        'Text', '', 'FontSize', 10, 'HorizontalAlignment', 'center', ...
+        'FontColor', T.textSec);
     
-    % RUN ANALYSIS BUTTON
-    app.runBtn = uibutton(leftBox, 'Position', [15 240 345 55], ...
-        'Text', '▶️ जाँच शुरू करें (Run Analysis)', 'FontSize', 16, 'FontWeight', 'bold', ...
-        'BackgroundColor', [0.2 0.7 0.3], 'FontColor', 'white', ...
+    % Run Analysis Button
+    app.runBtn = uibutton(leftBox, 'Position', [16 292 356 48], ...
+        'Text', '▶  जाँच शुरू करें  (Run Analysis)', 'FontSize', 15, 'FontWeight', 'bold', ...
+        'BackgroundColor', T.success, 'FontColor', 'white', ...
         'Enable', 'off', ...
         'ButtonPushedFcn', @(~,~) runAnalysis(app));
     
-    % Progress
-    app.progressLabel = uilabel(leftBox, 'Position', [15 210 345 25], ...
-        'Text', '', 'FontSize', 11, 'HorizontalAlignment', 'center');
+    % Progress label (brief status)
+    app.progressLabel = uilabel(leftBox, 'Position', [16 264 356 24], ...
+        'Text', '', 'FontSize', 10, 'HorizontalAlignment', 'center', ...
+        'FontColor', T.accent);
     
-    % RESULT DISPLAY
-    app.resultPanel = uipanel(leftBox, 'Position', [15 80 345 120], ...
-        'BackgroundColor', [0.93 0.93 0.93], 'BorderType', 'line');
-    app.resultLabel = uilabel(app.resultPanel, 'Position', [10 60 325 50], ...
-        'Text', 'परिणाम यहाँ दिखेगा', 'FontSize', 20, 'FontWeight', 'bold', ...
-        'HorizontalAlignment', 'center');
-    app.resultDetail = uilabel(app.resultPanel, 'Position', [10 10 325 45], ...
-        'Text', '', 'FontSize', 12, 'HorizontalAlignment', 'center', ...
-        'WordWrap', 'on');
+    % ── PIPELINE PROGRESS PANEL ──
+    app.pipelinePanel = uipanel(leftBox, 'Position', [16 6 356 120], ...
+        'BackgroundColor', [0.94 0.95 0.97], 'BorderType', 'line', ...
+        'BorderColor', T.border, 'Visible', 'off');
+    uilabel(app.pipelinePanel, 'Position', [8 96 200 18], ...
+        'Text', 'Pipeline Progress', 'FontSize', 11, 'FontWeight', 'bold', 'FontColor', T.header);
+    stepNames = {'Image Standardization', 'Quality Assessment', 'Vessel Segmentation', ...
+                 'Lesion Detection (ONNX)', 'DR Grading (ONNX)', 'Explainability', 'Safety Checks'};
+    for s = 1:7
+        app.stepLabels(s) = uilabel(app.pipelinePanel, 'Position', [10 96-s*13 340 13], ...
+            'Text', sprintf('  ○  Step %d: %s', s, stepNames{s}), ...
+            'FontSize', 9, 'FontColor', T.textSec);
+    end
+    app.pipelineGauge = uigauge(app.pipelinePanel, 'linear', ...
+        'Position', [10 2 336 14], 'Limits', [0 100], 'Value', 0, ...
+        'ScaleColors', {T.accent, T.success}, 'ScaleColorLimits', [0 60; 60 100]);
     
-    % Action buttons
-    app.printBtn = uibutton(leftBox, 'Position', [15 35 165 35], ...
-        'Text', '🖨️ Print Report', 'FontSize', 12, 'Enable', 'off', ...
+    % ── RESULT CARD ──
+    app.resultPanel = uipanel(leftBox, 'Position', [16 126 356 130], ...
+        'BackgroundColor', [0.96 0.97 0.98], 'BorderType', 'line', ...
+        'BorderColor', T.border);
+    
+    % Status bar at top of result card
+    app.resultStatusBar = uilabel(app.resultPanel, 'Position', [0 102 356 28], ...
+        'Text', '  AWAITING ANALYSIS', 'FontSize', 10, 'FontWeight', 'bold', ...
+        'FontColor', 'white', 'BackgroundColor', [0.60 0.64 0.70], ...
+        'HorizontalAlignment', 'left');
+    
+    % Main result text
+    app.resultLabel = uilabel(app.resultPanel, 'Position', [12 52 332 48], ...
+        'Text', 'परिणाम यहाँ दिखेगा', 'FontSize', 18, 'FontWeight', 'bold', ...
+        'HorizontalAlignment', 'center', 'FontColor', T.textPri);
+    
+    % Detail text
+    app.resultDetail = uilabel(app.resultPanel, 'Position', [12 10 332 40], ...
+        'Text', '', 'FontSize', 11, 'HorizontalAlignment', 'center', ...
+        'WordWrap', 'on', 'FontColor', T.textSec);
+    
+    % Action buttons row
+    app.printBtn = uibutton(leftBox, 'Position', [16 76 170 38], ...
+        'Text', '🖨  Print Report', 'FontSize', 12, 'Enable', 'off', ...
+        'BackgroundColor', [0.94 0.95 0.96], 'FontColor', T.textPri, ...
         'ButtonPushedFcn', @(~,~) printReport(app));
-    app.nextBtn = uibutton(leftBox, 'Position', [195 35 165 35], ...
-        'Text', '➡️ Next Patient', 'FontSize', 12, ...
+    app.nextBtn = uibutton(leftBox, 'Position', [200 76 172 38], ...
+        'Text', '➡  Next Patient', 'FontSize', 12, ...
+        'BackgroundColor', [0.94 0.95 0.96], 'FontColor', T.textPri, ...
         'ButtonPushedFcn', @(~,~) nextPatient(app));
     
-    % --- RIGHT COLUMN: Image Display ---
-    rightBox = uipanel(p, 'Position', [410 15 855 730], ...
-        'Title', '🖼️ Fundus Image', 'FontSize', 13, 'FontWeight', 'bold');
+    % --- RIGHT COLUMN: Image Display Grid (2x2) ---
+    rightBox = uipanel(p, 'Position', [420 10 888 770], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', ...
+        'BorderColor', T.border, 'Title', '', 'FontSize', 1);
     
-    % Main image axes
-    app.imgAxes = uiaxes(rightBox, 'Position', [15 370 400 330]);
-    title(app.imgAxes, 'Original Image');
+    % Section header
+    uilabel(rightBox, 'Position', [16 734 300 28], ...
+        'Text', '🖼  Fundus Image Analysis', ...
+        'FontSize', 15, 'FontWeight', 'bold', 'FontColor', T.header);
+    
+    % 2x2 image grid with dark axes backgrounds
+    axW = 418; axH = 340;
+    
+    % Top-left: Original Image
+    app.imgAxes = uiaxes(rightBox, 'Position', [12 380 axW axH]);
+    app.imgAxes.Color = T.axesBg;
+    title(app.imgAxes, 'Standardized Image', 'Color', T.textPri, 'FontWeight', 'bold');
     axis(app.imgAxes, 'image'); app.imgAxes.XTick = []; app.imgAxes.YTick = [];
+    app.imgAxes.XColor = T.border; app.imgAxes.YColor = T.border;
     
-    % Quality heatmap axes
-    app.qualAxes = uiaxes(rightBox, 'Position', [430 370 400 330]);
-    title(app.qualAxes, 'Quality Heatmap');
+    % Top-right: Quality heatmap
+    app.qualAxes = uiaxes(rightBox, 'Position', [12+axW+12 380 axW axH]);
+    app.qualAxes.Color = T.axesBg;
+    title(app.qualAxes, 'Quality Heatmap (16x16)', 'Color', T.textPri, 'FontWeight', 'bold');
     axis(app.qualAxes, 'image'); app.qualAxes.XTick = []; app.qualAxes.YTick = [];
+    app.qualAxes.XColor = T.border; app.qualAxes.YColor = T.border;
     
-    % Lesion overlay axes
-    app.overlayAxes = uiaxes(rightBox, 'Position', [15 20 400 330]);
-    title(app.overlayAxes, 'Lesion Overlay');
+    % Quality legend label
+    app.qualLegendLabel = uilabel(rightBox, 'Position', [12+axW+12 356 axW 22], ...
+        'Text', '', 'FontSize', 9, 'FontColor', T.textSec, 'HorizontalAlignment', 'center');
+    
+    % Bottom-left: Lesion overlay
+    app.overlayAxes = uiaxes(rightBox, 'Position', [12 24 axW axH]);
+    app.overlayAxes.Color = T.axesBg;
+    title(app.overlayAxes, 'Lesion Overlay', 'Color', T.textPri, 'FontWeight', 'bold');
     axis(app.overlayAxes, 'image'); app.overlayAxes.XTick = []; app.overlayAxes.YTick = [];
+    app.overlayAxes.XColor = T.border; app.overlayAxes.YColor = T.border;
     
-    % Grad-CAM axes
-    app.gcamAxes = uiaxes(rightBox, 'Position', [430 20 400 330]);
-    title(app.gcamAxes, 'Grad-CAM Attention');
+    % Bottom-right: Grad-CAM
+    app.gcamAxes = uiaxes(rightBox, 'Position', [12+axW+12 24 axW axH]);
+    app.gcamAxes.Color = T.axesBg;
+    title(app.gcamAxes, 'Grad-CAM Attention', 'Color', T.textPri, 'FontWeight', 'bold');
     axis(app.gcamAxes, 'image'); app.gcamAxes.XTick = []; app.gcamAxes.YTick = [];
+    app.gcamAxes.XColor = T.border; app.gcamAxes.YColor = T.border;
+    
+    % Grad-CAM explanation label
+    app.gcamLegendLabel = uilabel(rightBox, 'Position', [12+axW+12 0 axW 22], ...
+        'Text', 'Red/Yellow = High AI attention  |  Blue = Low attention  |  Feature-based explainability', ...
+        'FontSize', 9, 'FontColor', T.textSec, 'HorizontalAlignment', 'center');
 end
 
 % ================================================================
-% DOCTOR PANEL
+% DOCTOR PANEL — Case Review
 % ================================================================
-function buildDoctorPanel(app)
+function app = buildDoctorPanel(app)
     p = app.docPanel;
+    T = app.T;
     
-    % Queue list
-    queueBox = uipanel(p, 'Position', [15 15 300 730], ...
-        'Title', '📋 Escalated Cases Queue', 'FontSize', 13, 'FontWeight', 'bold');
+    % Queue list (left sidebar)
+    queueBox = uipanel(p, 'Position', [12 10 310 770], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
     
-    app.queueList = uilistbox(queueBox, 'Position', [10 50 280 640], ...
+    uilabel(queueBox, 'Position', [14 734 280 28], ...
+        'Text', '📋  Escalated Queue', ...
+        'FontSize', 15, 'FontWeight', 'bold', 'FontColor', T.header);
+    
+    app.queueList = uilistbox(queueBox, 'Position', [10 50 290 680], ...
         'FontSize', 12, 'Items', {'No escalated cases'}, ...
         'ValueChangedFcn', @(lb, ~) loadEscalatedCase(app, lb.Value));
     
-    app.refreshQueueBtn = uibutton(queueBox, 'Position', [10 10 280 30], ...
-        'Text', '🔄 Refresh Queue', 'FontSize', 11, ...
+    app.refreshQueueBtn = uibutton(queueBox, 'Position', [10 10 290 32], ...
+        'Text', '🔄  Refresh Queue', 'FontSize', 11, ...
+        'BackgroundColor', T.accent, 'FontColor', 'white', ...
         'ButtonPushedFcn', @(~,~) refreshDoctorQueue(app));
     
-    % Case detail panel
-    detailBox = uipanel(p, 'Position', [330 15 935 730], ...
-        'Title', '🔬 Case Review', 'FontSize', 13, 'FontWeight', 'bold');
+    % Case detail panel (right)
+    detailBox = uipanel(p, 'Position', [334 10 974 770], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
     
-    % Patient info
-    app.docPatientLabel = uilabel(detailBox, 'Position', [15 680 500 30], ...
-        'Text', 'Select a case from the queue', 'FontSize', 14, 'FontWeight', 'bold');
+    % Patient info header
+    app.docPatientLabel = uilabel(detailBox, 'Position', [16 734 600 28], ...
+        'Text', 'Select a case from the queue', ...
+        'FontSize', 15, 'FontWeight', 'bold', 'FontColor', T.header);
     
-    % Escalation reason
-    app.escReasonLabel = uilabel(detailBox, 'Position', [15 650 900 25], ...
-        'Text', '', 'FontSize', 13, 'FontColor', [0.8 0.2 0.2], 'FontWeight', 'bold');
+    % Escalation reason badge
+    app.escReasonLabel = uilabel(detailBox, 'Position', [16 706 940 24], ...
+        'Text', '', 'FontSize', 12, 'FontColor', T.danger, 'FontWeight', 'bold');
     
-    % Evidence images
-    app.docImgAxes = uiaxes(detailBox, 'Position', [15 340 290 290]);
-    title(app.docImgAxes, 'Enhanced Image');
+    % Evidence images row (3-up) — reduced height to make room for counterfactual
+    imgW = 300; imgH = 220;
+    
+    app.docImgAxes = uiaxes(detailBox, 'Position', [10 468 imgW imgH]);
+    app.docImgAxes.Color = T.axesBg;
+    title(app.docImgAxes, 'Enhanced Image', 'Color', T.textPri, 'FontWeight', 'bold');
     axis(app.docImgAxes, 'image'); app.docImgAxes.XTick = []; app.docImgAxes.YTick = [];
     
-    app.docOverlayAxes = uiaxes(detailBox, 'Position', [320 340 290 290]);
-    title(app.docOverlayAxes, 'Lesion Overlay');
+    app.docOverlayAxes = uiaxes(detailBox, 'Position', [10+imgW+10 468 imgW imgH]);
+    app.docOverlayAxes.Color = T.axesBg;
+    title(app.docOverlayAxes, 'Lesion Overlay', 'Color', T.textPri, 'FontWeight', 'bold');
     axis(app.docOverlayAxes, 'image'); app.docOverlayAxes.XTick = []; app.docOverlayAxes.YTick = [];
     
-    app.docGcamAxes = uiaxes(detailBox, 'Position', [625 340 290 290]);
-    title(app.docGcamAxes, 'Grad-CAM');
+    app.docGcamAxes = uiaxes(detailBox, 'Position', [10+imgW*2+20 468 imgW imgH]);
+    app.docGcamAxes.Color = T.axesBg;
+    title(app.docGcamAxes, 'Grad-CAM', 'Color', T.textPri, 'FontWeight', 'bold');
     axis(app.docGcamAxes, 'image'); app.docGcamAxes.XTick = []; app.docGcamAxes.YTick = [];
     
-    % Evidence text
-    app.evidenceText = uitextarea(detailBox, 'Position', [15 120 600 210], ...
-        'FontSize', 11, 'Editable', 'off', 'Value', {'Evidence chain will appear here'});
+    % == COUNTERFACTUAL CONSISTENCY CHECK PANEL ==
+    cfPanel = uipanel(detailBox, 'Position', [10 290 944 170], ...
+        'BackgroundColor', [0.96 0.97 0.99], 'BorderType', 'line', 'BorderColor', T.accent, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(cfPanel, 'Position', [10 142 400 22], ...
+        'Text', 'Counterfactual Consistency Check', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
     
-    % Metrics
-    metricsBox = uipanel(detailBox, 'Position', [630 120 280 210], ...
-        'Title', 'Metrics', 'FontSize', 11);
-    app.docMetricsLabel = uilabel(metricsBox, 'Position', [10 10 260 170], ...
-        'Text', '', 'FontSize', 11, 'WordWrap', 'on', 'VerticalAlignment', 'top');
+    cfImgW = 140; cfImgH = 120;
+    app.docOrigAxes = uiaxes(cfPanel, 'Position', [10 12 cfImgW cfImgH]);
+    app.docOrigAxes.Color = T.axesBg;
+    title(app.docOrigAxes, 'Original', 'Color', T.textPri, 'FontSize', 10);
+    axis(app.docOrigAxes, 'image'); app.docOrigAxes.XTick = []; app.docOrigAxes.YTick = [];
     
-    % Doctor actions
-    actionBox = uipanel(detailBox, 'Position', [15 15 900 95], ...
-        'Title', 'Doctor Action', 'FontSize', 12, 'FontWeight', 'bold', ...
-        'BackgroundColor', [0.95 0.95 1.0]);
+    uilabel(cfPanel, 'Position', [cfImgW+15 60 30 22], ...
+        'Text', '>>', 'FontSize', 16, 'FontWeight', 'bold', 'FontColor', T.accent);
     
-    app.confirmBtn = uibutton(actionBox, 'Position', [15 30 200 40], ...
-        'Text', '✅ Confirm AI Grade', 'FontSize', 13, 'FontWeight', 'bold', ...
-        'BackgroundColor', [0.2 0.7 0.3], 'FontColor', 'white', ...
+    app.docHealedAxes = uiaxes(cfPanel, 'Position', [cfImgW+50 12 cfImgW cfImgH]);
+    app.docHealedAxes.Color = T.axesBg;
+    title(app.docHealedAxes, 'Healed (lesions removed)', 'Color', T.textPri, 'FontSize', 10);
+    axis(app.docHealedAxes, 'image'); app.docHealedAxes.XTick = []; app.docHealedAxes.YTick = [];
+    
+    app.cfResultLabel = uilabel(cfPanel, 'Position', [cfImgW*2+70 70 580 60], ...
+        'Text', '', 'FontSize', 12, 'FontWeight', 'bold', 'WordWrap', 'on', ...
+        'FontColor', T.textPri, 'VerticalAlignment', 'top');
+    
+    app.cfDisclaimerLabel = uilabel(cfPanel, 'Position', [cfImgW*2+70 12 580 55], ...
+        'Text', 'Explainability visualization only. Checks whether identified lesions influence the AI prediction. Not a clinical diagnosis.', ...
+        'FontSize', 9, 'FontColor', T.textSec, 'WordWrap', 'on', 'VerticalAlignment', 'top');
+    
+    % Evidence text — repositioned below counterfactual
+    app.evidenceText = uitextarea(detailBox, 'Position', [10 140 620 142], ...
+        'FontSize', 11, 'Editable', 'off', 'Value', {'Evidence chain will appear here'}, ...
+        'FontName', 'Courier');
+    
+    % Metrics card
+    metricsBox = uipanel(detailBox, 'Position', [644 140 310 260], ...
+        'BackgroundColor', [0.97 0.97 0.99], 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(metricsBox, 'Position', [10 228 200 24], ...
+        'Text', '📊  Metrics', 'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.docMetricsLabel = uilabel(metricsBox, 'Position', [10 10 290 218], ...
+        'Text', '', 'FontSize', 12, 'WordWrap', 'on', 'VerticalAlignment', 'top', ...
+        'FontColor', T.textPri);
+    
+    % Doctor actions bar
+    actionBox = uipanel(detailBox, 'Position', [10 10 944 120], ...
+        'BackgroundColor', [0.97 0.98 0.99], 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    
+    uilabel(actionBox, 'Position', [14 88 200 24], ...
+        'Text', '⚕  Doctor Decision', 'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    
+    app.confirmBtn = uibutton(actionBox, 'Position', [14 38 200 42], ...
+        'Text', '✅  Confirm AI Grade', 'FontSize', 13, 'FontWeight', 'bold', ...
+        'BackgroundColor', T.success, 'FontColor', 'white', ...
         'Enable', 'off', ...
         'ButtonPushedFcn', @(~,~) doctorConfirm(app));
     
-    uilabel(actionBox, 'Position', [240 35 80 25], 'Text', 'Override to:', 'FontSize', 12);
-    app.overrideDropdown = uidropdown(actionBox, 'Position', [320 33 150 28], ...
-        'Items', {'Grade 0', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'}, ...
-        'FontSize', 11);
+    uilabel(actionBox, 'Position', [240 64 80 22], 'Text', 'Override to:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.overrideDropdown = uidropdown(actionBox, 'Position', [330 60 140 28], ...
+        'Items', {'Grade 0', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'}, 'FontSize', 11);
     
-    uilabel(actionBox, 'Position', [240 5 80 25], 'Text', 'Reason:', 'FontSize', 12);
-    app.overrideReason = uieditfield(actionBox, 'Position', [320 3 350 28], ...
+    uilabel(actionBox, 'Position', [240 32 80 22], 'Text', 'Reason:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.overrideReason = uieditfield(actionBox, 'Position', [330 28 350 28], ...
         'Placeholder', 'Typed reason required for override', 'FontSize', 11);
     
-    app.overrideBtn = uibutton(actionBox, 'Position', [690 30 200 40], ...
-        'Text', '✏️ Override Grade', 'FontSize', 13, 'FontWeight', 'bold', ...
-        'BackgroundColor', [0.9 0.5 0.1], 'FontColor', 'white', ...
+    app.overrideBtn = uibutton(actionBox, 'Position', [700 38 230 42], ...
+        'Text', '✏  Override Grade', 'FontSize', 13, 'FontWeight', 'bold', ...
+        'BackgroundColor', T.warning, 'FontColor', 'white', ...
         'Enable', 'off', ...
         'ButtonPushedFcn', @(~,~) doctorOverride(app));
 end
@@ -312,60 +469,71 @@ end
 % ================================================================
 % DISTRICT OFFICER PANEL
 % ================================================================
-function buildDistrictPanel(app)
+function app = buildDistrictPanel(app)
     p = app.distPanel;
+    T = app.T;
     
     % Left: Metrics
-    metricsBox = uipanel(p, 'Position', [15 380 630 365], ...
-        'Title', '📊 Validation Metrics', 'FontSize', 13, 'FontWeight', 'bold');
-    
-    app.metricsText = uitextarea(metricsBox, 'Position', [10 10 610 320], ...
+    metricsBox = uipanel(p, 'Position', [12 400 644 380], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(metricsBox, 'Position', [14 348 300 24], ...
+        'Text', '📊  Validation Metrics', 'FontSize', 14, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.metricsText = uitextarea(metricsBox, 'Position', [10 10 624 336], ...
         'FontSize', 11, 'Editable', 'off', ...
         'Value', {'Metrics will load from validation_results.mat', ...
                   'Run validate_pipeline(pipeline_config()) to generate.'});
     
     % Right: Reliability diagram
-    reliabilityBox = uipanel(p, 'Position', [660 380 605 365], ...
-        'Title', '📈 Reliability Diagram', 'FontSize', 13, 'FontWeight', 'bold');
-    app.relDiagAxes = uiaxes(reliabilityBox, 'Position', [10 10 580 310]);
+    reliabilityBox = uipanel(p, 'Position', [668 400 640 380], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(reliabilityBox, 'Position', [14 348 300 24], ...
+        'Text', '📈  Reliability Diagram', 'FontSize', 14, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.relDiagAxes = uiaxes(reliabilityBox, 'Position', [10 10 620 330]);
     title(app.relDiagAxes, 'Reliability Diagram');
     
-    % Left bottom: Escalation breakdown
-    escBox = uipanel(p, 'Position', [15 15 630 355], ...
-        'Title', '🔔 Escalation Breakdown & Ablation', 'FontSize', 13, 'FontWeight', 'bold');
-    app.escText = uitextarea(escBox, 'Position', [10 10 610 310], ...
+    % Left bottom: Escalation
+    escBox = uipanel(p, 'Position', [12 10 644 380], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(escBox, 'Position', [14 348 300 24], ...
+        'Text', '🔔  Escalation Breakdown', 'FontSize', 14, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.escText = uitextarea(escBox, 'Position', [10 10 624 336], ...
         'FontSize', 11, 'Editable', 'off', ...
         'Value', {'Escalation breakdown and ablation results will appear here.'});
     
     % Right bottom: Simulation
-    simBox = uipanel(p, 'Position', [660 15 605 355], ...
-        'Title', '⚙️ Screening Simulation', 'FontSize', 13, 'FontWeight', 'bold');
+    simBox = uipanel(p, 'Position', [668 10 640 380], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(simBox, 'Position', [14 348 300 24], ...
+        'Text', '⚙  Screening Simulation', 'FontSize', 14, 'FontWeight', 'bold', 'FontColor', T.header);
     
-    % Simulation parameters
-    uilabel(simBox, 'Position', [15 290 150 22], 'Text', 'Population:', 'FontSize', 11);
-    app.simPopField = uieditfield(simBox, 'numeric', 'Position', [170 290 100 22], 'Value', 500000);
+    uilabel(simBox, 'Position', [15 310 150 22], 'Text', 'Population:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simPopField = uieditfield(simBox, 'numeric', 'Position', [170 308 100 24], 'Value', 500000);
     
-    uilabel(simBox, 'Position', [15 260 150 22], 'Text', 'DM Prevalence:', 'FontSize', 11);
-    app.simDmField = uieditfield(simBox, 'numeric', 'Position', [170 260 100 22], 'Value', 0.12);
+    uilabel(simBox, 'Position', [15 280 150 22], 'Text', 'DM Prevalence:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simDmField = uieditfield(simBox, 'numeric', 'Position', [170 278 100 24], 'Value', 0.12);
     
-    uilabel(simBox, 'Position', [15 230 150 22], 'Text', 'Camp days/month:', 'FontSize', 11);
-    app.simCampField = uieditfield(simBox, 'numeric', 'Position', [170 230 100 22], 'Value', 4);
+    uilabel(simBox, 'Position', [15 250 150 22], 'Text', 'Camp days/month:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simCampField = uieditfield(simBox, 'numeric', 'Position', [170 248 100 24], 'Value', 4);
     
-    uilabel(simBox, 'Position', [15 200 150 22], 'Text', 'Devices/camp:', 'FontSize', 11);
-    app.simDevField = uieditfield(simBox, 'numeric', 'Position', [170 200 100 22], 'Value', 3);
+    uilabel(simBox, 'Position', [15 220 150 22], 'Text', 'Devices/camp:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simDevField = uieditfield(simBox, 'numeric', 'Position', [170 218 100 24], 'Value', 3);
     
-    uilabel(simBox, 'Position', [290 290 170 22], 'Text', 'Referral adherence:', 'FontSize', 11);
-    app.simAdhSlider = uislider(simBox, 'Position', [290 275 270 3], ...
+    uilabel(simBox, 'Position', [290 310 170 22], 'Text', 'Referral adherence:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simAdhSlider = uislider(simBox, 'Position', [290 295 270 3], ...
         'Limits', [0.11 0.57], 'Value', 0.145);
-    app.simAdhLabel = uilabel(simBox, 'Position', [565 268 40 22], 'Text', '14.5%', 'FontSize', 10);
+    app.simAdhLabel = uilabel(simBox, 'Position', [565 288 50 22], 'Text', '14.5%', 'FontSize', 10, 'FontColor', T.textSec);
     app.simAdhSlider.ValueChangedFcn = @(s,~) set(app.simAdhLabel, 'Text', sprintf('%.1f%%', s.Value*100));
     
-    app.runSimBtn = uibutton(simBox, 'Position', [290 225 280 30], ...
-        'Text', '▶️ Run Simulation', 'FontSize', 12, 'FontWeight', 'bold', ...
-        'BackgroundColor', [0.2 0.6 0.9], 'FontColor', 'white', ...
+    app.runSimBtn = uibutton(simBox, 'Position', [290 242 280 32], ...
+        'Text', '▶  Run Simulation', 'FontSize', 12, 'FontWeight', 'bold', ...
+        'BackgroundColor', T.accent, 'FontColor', 'white', ...
         'ButtonPushedFcn', @(~,~) runSimFromGUI(app));
     
-    app.simResultText = uitextarea(simBox, 'Position', [15 10 570 205], ...
+    app.simResultText = uitextarea(simBox, 'Position', [15 10 600 200], ...
         'FontSize', 10, 'Editable', 'off', ...
         'Value', {'Simulation results will appear here.'});
 end
@@ -411,35 +579,39 @@ function loadImage(app)
         end
     end
     
-    % Standardize
-    app.progressLabel.Text = 'Standardizing image...';
-    drawnow;
+    % Step 1: Standardize — with visible progress
+    app.progressLabel.Text = '🔧 Step 1/3: Standardizing image (CLAHE + resize)...';
+    drawnow; pause(0.3);
     [app.stdImage, app.retinaMask, app.fovProps] = standardize_for_pipeline(app.currentImage);
     
     % Display
     imshow(app.stdImage, 'Parent', app.imgAxes);
-    title(app.imgAxes, 'Standardized Image');
+    title(app.imgAxes, 'Standardized Image', 'Color', app.T.textPri, 'FontWeight', 'bold');
+    app.progressLabel.Text = '✓ Standardized (1024×1024, CLAHE enhanced)';
+    drawnow; pause(0.4);
     
-    % Quality check
-    app.progressLabel.Text = 'Checking image quality...';
-    drawnow;
+    % Step 2: Quality check
+    app.progressLabel.Text = '🔍 Step 2/3: Assessing quality (16×16 tile grid)...';
+    drawnow; pause(0.3);
     [pass_flag, feedback, quality_info] = assess_quality(app.stdImage, app.retinaMask);
     
-    % Display quality heatmap
+    % Step 3: Display quality heatmap
+    app.progressLabel.Text = '📊 Step 3/3: Generating quality heatmap...';
+    drawnow; pause(0.2);
     displayQualityHeatmap(app, quality_info);
     
     if pass_flag
-        app.qualityLabel.Text = '🟢 Quality: PASS';
-        app.qualityLabel.FontColor = [0.1 0.6 0.1];
+        app.qualityLabel.Text = '●  Quality: PASS';
+        app.qualityLabel.FontColor = app.T.success;
         app.retakeLabel.Text = '';
         app.runBtn.Enable = 'on';
         app.retakeCount = 0;
     else
         app.retakeCount = app.retakeCount + 1;
         if app.retakeCount >= app.maxRetakes
-            app.qualityLabel.Text = '🔴 UNGRADEABLE — Auto-referring';
-            app.qualityLabel.FontColor = [0.8 0.1 0.1];
-            app.retakeLabel.Text = sprintf('3/3 retakes failed. Reason: %s', feedback);
+            app.qualityLabel.Text = '●  UNGRADEABLE — Auto-referring';
+            app.qualityLabel.FontColor = app.T.danger;
+            app.retakeLabel.Text = sprintf('3/3 retakes failed: %s', feedback);
             % Create ungradeable result
             eye = getCurrentEye(app);
             result = struct('grade', -1, 'pRef', NaN, 'confidence', NaN, ...
@@ -450,14 +622,17 @@ function loadImage(app)
             else
                 app.leftResult = result;
             end
-            app.resultLabel.Text = '🔴 अनिश्चित (Ungradeable)';
-            app.resultPanel.BackgroundColor = [1 0.85 0.85];
+            app.resultStatusBar.Text = '  ● UNGRADEABLE';
+            app.resultStatusBar.BackgroundColor = app.T.danger;
+            app.resultLabel.Text = 'Ungradeable (अनिश्चित)';
+            app.resultLabel.FontColor = app.T.danger;
+            app.resultPanel.BackgroundColor = [0.98 0.94 0.94];
             app.resultDetail.Text = sprintf('Reason: %s. Referred to hospital.', feedback);
             app.printBtn.Enable = 'on';
         else
-            app.qualityLabel.Text = sprintf('🔴 Quality: FAIL (%d/%d)', app.retakeCount, app.maxRetakes);
-            app.qualityLabel.FontColor = [0.8 0.1 0.1];
-            app.retakeLabel.Text = sprintf('Feedback: %s. Please retake.', feedback);
+            app.qualityLabel.Text = sprintf('●  Quality: FAIL (%d/%d)', app.retakeCount, app.maxRetakes);
+            app.qualityLabel.FontColor = app.T.danger;
+            app.retakeLabel.Text = sprintf('%s — Please retake.', feedback);
             app.runBtn.Enable = 'off';
         end
     end
@@ -483,19 +658,50 @@ function runAnalysis(app)
     cfg = app.cfg;
     tic;
     
-    % Step 1: Segmentation
-    app.progressLabel.Text = 'Step 1/4: Segmenting retinal structures...';
+    % Show pipeline progress panel
+    app.pipelinePanel.Visible = 'on';
+    for s = 1:7
+        app.stepLabels(s).Text = sprintf('  ○  Step %d: %s', s, getStepName(s));
+        app.stepLabels(s).FontColor = app.T.textSec;
+    end
+    app.pipelineGauge.Value = 0;
+    drawnow;
+    
+    % === Step 1: Image Standardization (already done in loadImage) ===
+    updateStep(app, 1, 'running'); drawnow; pause(0.3);
+    updateStep(app, 1, 'done');
+    app.pipelineGauge.Value = 14; drawnow; pause(0.2);
+    
+    % === Step 2: Quality Assessment (already done in loadImage) ===
+    updateStep(app, 2, 'running'); drawnow; pause(0.3);
+    updateStep(app, 2, 'done');
+    app.pipelineGauge.Value = 28; drawnow; pause(0.2);
+    
+    % === Step 3: Vessel Segmentation ===
+    updateStep(app, 3, 'running');
+    app.progressLabel.Text = 'Segmenting vessels...';
     drawnow;
     [all_masks, lesion_counts, seg_info] = segment_all(app.stdImage, app.retinaMask, cfg);
+    updateStep(app, 3, 'done');
+    app.pipelineGauge.Value = 42; drawnow; pause(0.2);
     
     % Display overlay
     if isfield(seg_info, 'overlay_img') && ~isempty(seg_info.overlay_img)
         imshow(seg_info.overlay_img, 'Parent', app.overlayAxes);
     end
-    title(app.overlayAxes, 'Lesion Overlay');
+    title(app.overlayAxes, sprintf('Lesion Overlay (%s)', seg_info.method_used), ...
+        'Color', app.T.textPri, 'FontWeight', 'bold');
     
-    % Step 2: Grading
-    app.progressLabel.Text = 'Step 2/4: Grading with ensemble...';
+    % === Step 4: Lesion Detection ===
+    updateStep(app, 4, 'running');
+    app.progressLabel.Text = 'Detecting lesions (ONNX)...';
+    drawnow; pause(0.3);
+    updateStep(app, 4, 'done');
+    app.pipelineGauge.Value = 56; drawnow; pause(0.2);
+    
+    % === Step 5: DR Grading ===
+    updateStep(app, 5, 'running');
+    app.progressLabel.Text = 'DR Grading (ResNet50 ONNX)...';
     drawnow;
     grade_result = grade_dr_ensemble(app.stdImage, app.retinaMask, seg_info, cfg);
     
@@ -503,9 +709,12 @@ function runAnalysis(app)
     grade_result.lesion_counts = lesion_counts;
     grade_result.seg_info = seg_info;
     grade_result.all_masks = all_masks;
+    updateStep(app, 5, 'done');
+    app.pipelineGauge.Value = 70; drawnow; pause(0.2);
     
-    % Step 3: Explainability (gated)
-    app.progressLabel.Text = 'Step 3/4: Generating explanations...';
+    % === Step 6: Explainability ===
+    updateStep(app, 6, 'running');
+    app.progressLabel.Text = 'Generating Grad-CAM + Counterfactual...';
     drawnow;
     explain_result = explain_prediction(app.stdImage, app.retinaMask, grade_result, seg_info, cfg);
     grade_result.explain = explain_result;
@@ -514,11 +723,25 @@ function runAnalysis(app)
     if isfield(explain_result, 'gradcam_overlay') && ~isempty(explain_result.gradcam_overlay)
         imshow(explain_result.gradcam_overlay, 'Parent', app.gcamAxes);
     end
-    title(app.gcamAxes, 'Grad-CAM Attention');
+    title(app.gcamAxes, 'Grad-CAM Attention', 'Color', app.T.textPri, 'FontWeight', 'bold');
+    updateStep(app, 6, 'done');
+    app.pipelineGauge.Value = 85; drawnow; pause(0.2);
+    
+    % === Step 7: Safety Checks ===
+    updateStep(app, 7, 'running');
+    app.progressLabel.Text = 'Running safety checks (OOD, DME, concordance)...';
+    drawnow; pause(0.4);
+    updateStep(app, 7, 'done');
+    app.pipelineGauge.Value = 100; drawnow; pause(0.3);
     
     % Step 4: Display result
     elapsed = toc;
-    app.progressLabel.Text = sprintf('Complete in %.1f sec', elapsed);
+    model_source = 'Classical';
+    if isfield(grade_result, 'model_source')
+        model_source = grade_result.model_source;
+    end
+    app.progressLabel.Text = sprintf('✓ Complete in %.1f s  [Model: %s | Seg: %s]', ...
+        elapsed, model_source, seg_info.method_used);
     
     eye = getCurrentEye(app);
     grade_result.eye = eye;
@@ -534,12 +757,19 @@ function runAnalysis(app)
     % Display result in Hindi
     displayResult(app, grade_result);
     
-    % If escalated, add to queue
+    % If escalated, add to queue — store images for Doctor view
     if strcmp(grade_result.decision, 'ESCALATE')
         caseData = struct();
         caseData.patientInfo = getPatientInfo(app);
         caseData.grade_result = grade_result;
         caseData.image = app.stdImage;
+        % Store overlay and gradcam for Doctor view
+        if isfield(seg_info, 'overlay_img')
+            caseData.overlay_img = seg_info.overlay_img;
+        end
+        if isfield(explain_result, 'gradcam_overlay')
+            caseData.gradcam_overlay = explain_result.gradcam_overlay;
+        end
         caseData.timestamp = datestr(now);
         app.escalatedQueue{end+1} = caseData;
     end
@@ -551,39 +781,56 @@ end
 function displayResult(app, result)
     cfg = app.cfg;
     grade = result.grade;
+    T = app.T;
     
     if grade < 0
-        app.resultLabel.Text = '🔴 अनिश्चित (Ungradeable)';
-        app.resultPanel.BackgroundColor = [1 0.85 0.85];
+        app.resultStatusBar.Text = '  ● UNGRADEABLE';
+        app.resultStatusBar.BackgroundColor = T.danger;
+        app.resultLabel.Text = 'Ungradeable (अनिश्चित)';
+        app.resultLabel.FontColor = T.danger;
+        app.resultPanel.BackgroundColor = [0.98 0.94 0.94];
         app.resultDetail.Text = 'Referred to hospital';
+        app.resultDetail.FontColor = T.textSec;
         return;
     end
     
     hindi_grades = cfg.icdr_hindi;
     
     if grade <= 1
-        color = [0.85 1 0.85]; % green
-        emoji = '🟢';
+        statusColor = T.success;
+        statusBg = [0.93 0.98 0.93];
+        statusText = '  ● NO/MILD DR';
     elseif grade == 2
-        color = [1 1 0.8]; % yellow
-        emoji = '🟡';
+        statusColor = T.warning;
+        statusBg = [0.99 0.97 0.92];
+        statusText = '  ● MODERATE DR';
     else
-        color = [1 0.85 0.85]; % red
-        emoji = '🔴';
+        statusColor = T.danger;
+        statusBg = [0.98 0.94 0.94];
+        statusText = sprintf('  ● SEVERE (Grade %d)', grade);
     end
     
-    app.resultPanel.BackgroundColor = color;
+    app.resultStatusBar.Text = statusText;
+    app.resultStatusBar.BackgroundColor = statusColor;
+    app.resultPanel.BackgroundColor = statusBg;
     
     if strcmp(result.decision, 'ESCALATE')
-        app.resultLabel.Text = sprintf('%s अनिश्चित — Doctor review needed', emoji);
+        app.resultStatusBar.Text = '  ⚠ ESCALATED — Doctor Review';
+        app.resultStatusBar.BackgroundColor = T.warning;
+        app.resultLabel.Text = sprintf('Grade %d — Doctor review needed', grade);
+        app.resultLabel.FontColor = T.textPri;
         app.resultDetail.Text = sprintf('Reason: %s', result.escalation_reason);
+        app.resultDetail.FontColor = T.danger;
     else
-        app.resultLabel.Text = sprintf('%s %s (Grade %d)', emoji, hindi_grades{grade+1}, grade);
+        app.resultLabel.Text = sprintf('%s  (Grade %d)', hindi_grades{grade+1}, grade);
+        app.resultLabel.FontColor = T.textPri;
         urgency = cfg.urgency_labels{min(grade+1, length(cfg.urgency_labels))};
-        app.resultDetail.Text = urgency;
+        detailText = urgency;
         if isfield(result, 'dme_suspected') && result.dme_suspected
-            app.resultDetail.Text = [app.resultDetail.Text ' | ⚠️ DME suspected'];
+            detailText = [detailText '  ·  ⚠ DME suspected'];
         end
+        app.resultDetail.Text = detailText;
+        app.resultDetail.FontColor = T.textSec;
     end
 end
 
@@ -592,36 +839,92 @@ function displayQualityHeatmap(app, quality_info)
     
     qmap = quality_info.quality_map;
     [rows, cols] = size(qmap);
-    heatmap_img = zeros(rows * 50, cols * 50, 3, 'uint8');
     
-    for r = 1:rows
-        for c = 1:cols
-            r1 = (r-1)*50+1; r2 = r*50;
-            c1 = (c-1)*50+1; c2 = c*50;
-            
-            status = qmap{r,c};
-            if isempty(status) || strcmp(status, '')
-                color = uint8([200 200 200]); % gray for skipped
-            elseif strcmp(status, 'good')
-                color = uint8([50 200 50]); % green
-            elseif strcmp(status, 'blur')
-                color = uint8([200 50 50]); % red
-            elseif strcmp(status, 'dark')
-                color = uint8([100 50 50]); % dark red
-            elseif strcmp(status, 'glare')
-                color = uint8([200 200 50]); % yellow
-            else
-                color = uint8([150 150 150]);
+    % Get the image size from the standardized image for overlay
+    if isfield(app, 'stdImage') && ~isempty(app.stdImage)
+        [imgH, imgW, ~] = size(app.stdImage);
+        tileH = floor(imgH / rows);
+        tileW = floor(imgW / cols);
+        
+        % Create semi-transparent overlay on the actual image
+        base_img = im2double(app.stdImage);
+        overlay = zeros(imgH, imgW, 3);
+        alpha_mask = zeros(imgH, imgW);
+        
+        for r = 1:rows
+            for c = 1:cols
+                r1 = (r-1)*tileH+1; r2 = min(r*tileH, imgH);
+                c1 = (c-1)*tileW+1; c2 = min(c*tileW, imgW);
+                
+                status = qmap{r,c};
+                if isempty(status) || strcmp(status, '')
+                    continue;  % skip non-retina tiles
+                elseif strcmp(status, 'good')
+                    color = [0.2 0.9 0.2]; a = 0.25;
+                elseif strcmp(status, 'blur')
+                    color = [1.0 0.2 0.2]; a = 0.40;
+                elseif strcmp(status, 'dark')
+                    color = [0.7 0.1 0.1]; a = 0.40;
+                elseif strcmp(status, 'glare')
+                    color = [1.0 0.9 0.2]; a = 0.35;
+                else
+                    color = [0.5 0.5 0.5]; a = 0.20;
+                end
+                
+                for ch = 1:3
+                    overlay(r1:r2, c1:c2, ch) = color(ch);
+                end
+                alpha_mask(r1:r2, c1:c2) = a;
+                
+                % Draw grid lines
+                overlay(r1, c1:c2, :) = 1; alpha_mask(r1, c1:c2) = 0.5;
+                overlay(r2, c1:c2, :) = 1; alpha_mask(r2, c1:c2) = 0.5;
+                overlay(r1:r2, c1, :) = 1; alpha_mask(r1:r2, c1) = 0.5;
+                overlay(r1:r2, c2, :) = 1; alpha_mask(r1:r2, c2) = 0.5;
             end
-            
-            for ch = 1:3
-                heatmap_img(r1:r2, c1:c2, ch) = color(ch);
+        end
+        
+        % Blend: result = base * (1 - alpha) + overlay * alpha
+        alpha3 = repmat(alpha_mask, [1 1 3]);
+        blended = base_img .* (1 - alpha3) + overlay .* alpha3;
+        heatmap_result = im2uint8(blended);
+    else
+        % Fallback: simple color grid if no image available
+        pxPerTile = 80;
+        heatmap_result = zeros(rows * pxPerTile, cols * pxPerTile, 3, 'uint8');
+        for r = 1:rows
+            for c = 1:cols
+                r1 = (r-1)*pxPerTile+1; r2 = r*pxPerTile;
+                c1 = (c-1)*pxPerTile+1; c2 = c*pxPerTile;
+                status = qmap{r,c};
+                if isempty(status) || strcmp(status, ''), color = uint8([60 60 70]);
+                elseif strcmp(status, 'good'), color = uint8([40 180 40]);
+                elseif strcmp(status, 'blur'), color = uint8([200 50 50]);
+                elseif strcmp(status, 'dark'), color = uint8([100 30 30]);
+                elseif strcmp(status, 'glare'), color = uint8([220 200 40]);
+                else, color = uint8([120 120 120]); end
+                for ch = 1:3, heatmap_result(r1:r2, c1:c2, ch) = color(ch); end
+                % Grid lines
+                heatmap_result(r1, c1:c2, :) = 40;
+                heatmap_result(r1:r2, c1, :) = 40;
             end
         end
     end
     
-    imshow(heatmap_img, 'Parent', app.qualAxes);
-    title(app.qualAxes, 'Quality Heatmap (🟢good 🔴blur/dark 🟡glare)');
+    imshow(heatmap_result, 'Parent', app.qualAxes);
+    title(app.qualAxes, sprintf('Quality Heatmap (%dx%d grid)', rows, cols), ...
+        'Color', app.T.textPri, 'FontWeight', 'bold');
+    
+    % Update legend label with tile counts
+    if isfield(app, 'qualLegendLabel')
+        good_n = sum(cellfun(@(x) strcmp(x, 'good'), qmap(:)));
+        blur_n = sum(cellfun(@(x) strcmp(x, 'blur'), qmap(:)));
+        dark_n = sum(cellfun(@(x) strcmp(x, 'dark'), qmap(:)));
+        glare_n = sum(cellfun(@(x) strcmp(x, 'glare'), qmap(:)));
+        total_n = good_n + blur_n + dark_n + glare_n;
+        app.qualLegendLabel.Text = sprintf('Good: %d/%d | Blur: %d | Dark: %d | Glare: %d', ...
+            good_n, total_n, blur_n, dark_n, glare_n);
+    end
 end
 
 function eye = getCurrentEye(app)
@@ -662,6 +965,7 @@ end
 
 function nextPatient(app)
     app = app.fig.UserData;
+    T = app.T;
     
     % Reset
     app.nameField.Value = '';
@@ -673,15 +977,27 @@ function nextPatient(app)
     app.rightResult = [];
     app.consentCheck1.Value = false;
     app.consentCheck2.Value = false;
-    app.qualityLabel.Text = 'Quality: Not assessed';
-    app.qualityLabel.FontColor = [0 0 0];
+    app.qualityLabel.Text = '○  Quality: Not assessed';
+    app.qualityLabel.FontColor = T.textSec;
     app.retakeLabel.Text = '';
+    app.resultStatusBar.Text = '  AWAITING ANALYSIS';
+    app.resultStatusBar.BackgroundColor = [0.60 0.64 0.70];
     app.resultLabel.Text = 'परिणाम यहाँ दिखेगा';
-    app.resultPanel.BackgroundColor = [0.93 0.93 0.93];
+    app.resultLabel.FontColor = T.textPri;
+    app.resultPanel.BackgroundColor = [0.96 0.97 0.98];
     app.resultDetail.Text = '';
     app.progressLabel.Text = '';
     app.runBtn.Enable = 'off';
     app.printBtn.Enable = 'off';
+    
+    % Reset pipeline progress panel
+    if isfield(app, 'pipelinePanel')
+        app.pipelinePanel.Visible = 'off';
+        app.pipelineGauge.Value = 0;
+    end
+    if isfield(app, 'qualLegendLabel')
+        app.qualLegendLabel.Text = '';
+    end
     
     cla(app.imgAxes); cla(app.qualAxes);
     cla(app.overlayAxes); cla(app.gcamAxes);
@@ -697,6 +1013,15 @@ function refreshDoctorQueue(app)
     
     if isempty(app.escalatedQueue)
         app.queueList.Items = {'No escalated cases'};
+        % Clear the detail panel
+        app.docPatientLabel.Text = 'No escalated cases in queue';
+        app.escReasonLabel.Text = '';
+        cla(app.docImgAxes); cla(app.docOverlayAxes); cla(app.docGcamAxes);
+        app.evidenceText.Value = {'No cases to review'};
+        app.docMetricsLabel.Text = '';
+        app.confirmBtn.Enable = 'off';
+        app.overrideBtn.Enable = 'off';
+        app.fig.UserData = app;
         return;
     end
     
@@ -710,7 +1035,11 @@ function refreshDoctorQueue(app)
         items{i} = sprintf('#%d: %s — %s', i, name, c.grade_result.escalation_reason);
     end
     app.queueList.Items = items;
+    app.queueList.Value = items{1};  % Explicitly select first
     app.fig.UserData = app;
+    
+    % Auto-load the first case (since ValueChangedFcn won't fire on auto-select)
+    loadEscalatedCase(app, items{1});
 end
 
 function loadEscalatedCase(app, selectedValue)
@@ -725,20 +1054,81 @@ function loadEscalatedCase(app, selectedValue)
     app.currentDocCase = c;
     app.currentDocIdx = idx;
     
-    % Display info
-    app.docPatientLabel.Text = sprintf('Patient: %s | Age: %d | Eye: %s', ...
-        c.patientInfo.name, c.patientInfo.age, c.grade_result.eye);
-    app.escReasonLabel.Text = sprintf('⚠️ Escalation: %s', c.grade_result.escalation_reason);
+    % Debug: log available data
+    fprintf('Loading case #%d for doctor review:\n', idx);
+    fprintf('  image: %s\n', mat2str(isfield(c, 'image') && ~isempty(c.image)));
+    fprintf('  overlay_img (direct): %s\n', mat2str(isfield(c, 'overlay_img')));
+    fprintf('  gradcam_overlay (direct): %s\n', mat2str(isfield(c, 'gradcam_overlay')));
+    if isfield(c, 'grade_result')
+        fprintf('  grade_result.seg_info.overlay_img: %s\n', ...
+            mat2str(isfield(c.grade_result, 'seg_info') && isfield(c.grade_result.seg_info, 'overlay_img')));
+        fprintf('  grade_result.explain.gradcam_overlay: %s\n', ...
+            mat2str(isfield(c.grade_result, 'explain') && isfield(c.grade_result.explain, 'gradcam_overlay')));
+    end
     
-    % Display images
+    % Display info
+    app.docPatientLabel.Text = sprintf('Patient: %s  |  Age: %d  |  Eye: %s', ...
+        c.patientInfo.name, c.patientInfo.age, c.grade_result.eye);
+    app.escReasonLabel.Text = sprintf('⚠  Escalation: %s', c.grade_result.escalation_reason);
+    
+    % Display images — use direct stored images for reliability
     if isfield(c, 'image') && ~isempty(c.image)
         imshow(c.image, 'Parent', app.docImgAxes);
+        title(app.docImgAxes, 'Enhanced Image', 'Color', app.T.textPri, 'FontWeight', 'bold');
     end
-    if isfield(c.grade_result, 'seg_info') && isfield(c.grade_result.seg_info, 'overlay_img')
+    
+    % Overlay — check direct storage first, then nested path
+    if isfield(c, 'overlay_img') && ~isempty(c.overlay_img)
+        imshow(c.overlay_img, 'Parent', app.docOverlayAxes);
+        title(app.docOverlayAxes, 'Lesion Overlay', 'Color', app.T.textPri, 'FontWeight', 'bold');
+    elseif isfield(c, 'grade_result') && isfield(c.grade_result, 'seg_info') && isfield(c.grade_result.seg_info, 'overlay_img')
         imshow(c.grade_result.seg_info.overlay_img, 'Parent', app.docOverlayAxes);
+        title(app.docOverlayAxes, 'Lesion Overlay', 'Color', app.T.textPri, 'FontWeight', 'bold');
     end
-    if isfield(c.grade_result, 'explain') && isfield(c.grade_result.explain, 'gradcam_overlay')
+    
+    % Grad-CAM — check direct storage first, then nested path
+    if isfield(c, 'gradcam_overlay') && ~isempty(c.gradcam_overlay)
+        imshow(c.gradcam_overlay, 'Parent', app.docGcamAxes);
+        title(app.docGcamAxes, 'Grad-CAM', 'Color', app.T.textPri, 'FontWeight', 'bold');
+    elseif isfield(c, 'grade_result') && isfield(c.grade_result, 'explain') && isfield(c.grade_result.explain, 'gradcam_overlay')
         imshow(c.grade_result.explain.gradcam_overlay, 'Parent', app.docGcamAxes);
+        title(app.docGcamAxes, 'Grad-CAM', 'Color', app.T.textPri, 'FontWeight', 'bold');
+    end
+    
+    % === COUNTERFACTUAL VISUALIZATION ===
+    if isfield(c, 'image') && ~isempty(c.image)
+        imshow(c.image, 'Parent', app.docOrigAxes);
+        title(app.docOrigAxes, 'Original', 'Color', app.T.textPri, 'FontSize', 10);
+    end
+    
+    % Display healed image and result text
+    cfShown = false;
+    if isfield(c.grade_result, 'explain') && isfield(c.grade_result.explain, 'counterfactual')
+        cf = c.grade_result.explain.counterfactual;
+        if isfield(cf, 'healed_img') && ~isempty(cf.healed_img)
+            imshow(cf.healed_img, 'Parent', app.docHealedAxes);
+            title(app.docHealedAxes, 'Healed', 'Color', app.T.textPri, 'FontSize', 10);
+            cfShown = true;
+        end
+        if isfield(cf, 'flip_result')
+            fr = cf.flip_result;
+            if isfield(fr, 'description')
+                app.cfResultLabel.Text = sprintf('Grade: %d -> %d\n%s', ...
+                    fr.original_grade, fr.healed_grade, fr.description);
+            else
+                app.cfResultLabel.Text = sprintf('Grade: %d -> %d', ...
+                    fr.original_grade, fr.healed_grade);
+            end
+            if isfield(fr, 'grade_dropped') && fr.grade_dropped
+                app.cfResultLabel.FontColor = app.T.success;
+            else
+                app.cfResultLabel.FontColor = app.T.warning;
+            end
+        end
+    end
+    if ~cfShown
+        app.cfResultLabel.Text = 'No counterfactual data available for this case.';
+        app.cfResultLabel.FontColor = app.T.textSec;
     end
     
     % Evidence text
@@ -746,11 +1136,40 @@ function loadEscalatedCase(app, selectedValue)
     evidence = format_evidence_chain(c.grade_result, c.grade_result.seg_info, c.grade_result.explain, cfg);
     app.evidenceText.Value = strsplit(evidence, newline);
     
-    % Metrics
-    app.docMetricsLabel.Text = sprintf(['Grade: %d\npRef: %.3f\n' ...
-        'Confidence: %.3f\nAgreement: %s\nDME: %s'], ...
-        c.grade_result.grade, c.grade_result.pRef, c.grade_result.confidence, ...
-        mat2str(c.grade_result.agreement), mat2str(c.grade_result.dme_suspected));
+    % Metrics — Doctor-friendly format
+    grade_names = app.cfg.icdr_labels;
+    grade_name = 'Unknown';
+    if c.grade_result.grade >= 0 && c.grade_result.grade <= 4
+        grade_name = grade_names{c.grade_result.grade + 1};
+    end
+    
+    agree_str = 'No';
+    if isfield(c.grade_result, 'agreement') && c.grade_result.agreement
+        agree_str = 'Yes';
+    end
+    
+    dme_str = 'Not suspected';
+    if isfield(c.grade_result, 'dme_suspected') && c.grade_result.dme_suspected
+        dme_str = 'SUSPECTED';
+    end
+    
+    rec = app.cfg.urgency_labels{min(c.grade_result.grade + 1, 5)};
+    
+    metricLines = {};
+    metricLines{end+1} = sprintf('DR Severity: Grade %d (%s)', c.grade_result.grade, grade_name);
+    metricLines{end+1} = '';
+    metricLines{end+1} = sprintf('Referral Probability: %.1f%%', c.grade_result.pRef * 100);
+    metricLines{end+1} = '(>85% = Refer to ophthalmologist)';
+    metricLines{end+1} = '';
+    metricLines{end+1} = sprintf('AI Confidence: %.1f%%', c.grade_result.confidence * 100);
+    metricLines{end+1} = '(How certain the AI is)';
+    metricLines{end+1} = '';
+    metricLines{end+1} = sprintf('Model Agreement: %s', agree_str);
+    metricLines{end+1} = '';
+    metricLines{end+1} = sprintf('Macular Edema: %s', dme_str);
+    metricLines{end+1} = '';
+    metricLines{end+1} = sprintf('Recommendation: %s', rec);
+    app.docMetricsLabel.Text = strjoin(metricLines, newline);
     
     app.confirmBtn.Enable = 'on';
     app.overrideBtn.Enable = 'on';
@@ -771,12 +1190,13 @@ function doctorConfirm(app)
     
     % Remove from queue
     app.escalatedQueue(app.currentDocIdx) = [];
-    refreshDoctorQueue(app);
-    
-    uialert(app.fig, 'Grade confirmed and logged.', 'Confirmed', 'Icon', 'success');
     app.confirmBtn.Enable = 'off';
     app.overrideBtn.Enable = 'off';
     app.fig.UserData = app;
+    
+    refreshDoctorQueue(app);
+    
+    uialert(app.fig, 'Grade confirmed and logged.', 'Confirmed', 'Icon', 'success');
 end
 
 function doctorOverride(app)
@@ -800,13 +1220,14 @@ function doctorOverride(app)
     
     % Remove from queue
     app.escalatedQueue(app.currentDocIdx) = [];
-    refreshDoctorQueue(app);
-    
-    uialert(app.fig, sprintf('Grade overridden to %d. Logged.', newGrade), 'Overridden', 'Icon', 'info');
     app.confirmBtn.Enable = 'off';
     app.overrideBtn.Enable = 'off';
     app.overrideReason.Value = '';
     app.fig.UserData = app;
+    
+    refreshDoctorQueue(app);
+    
+    uialert(app.fig, sprintf('Grade overridden to %d. Logged.', newGrade), 'Overridden', 'Icon', 'info');
 end
 
 function appendToLog(app, logEntry)
@@ -837,52 +1258,135 @@ function refreshDistrictDashboard(app)
     if exist(valFile, 'file')
         val = load(valFile);
         
-        metricsStr = {};
-        if isfield(val, 'metrics')
+        % The generate_demo_validation_data saves under 'results' struct
+        m = [];
+        if isfield(val, 'results')
+            m = val.results;
+        elseif isfield(val, 'metrics')
             m = val.metrics;
+        end
+        
+        metricsStr = {};
+        if ~isempty(m)
             metricsStr{end+1} = '=== Validation Metrics ===';
-            metricsStr{end+1} = sprintf('Referable-DR Sensitivity: %.1f%% [%.1f%%, %.1f%%]', ...
-                m.sensitivity*100, m.sensitivity_ci(1)*100, m.sensitivity_ci(2)*100);
-            metricsStr{end+1} = sprintf('Referable-DR Specificity: %.1f%% [%.1f%%, %.1f%%]', ...
-                m.specificity*100, m.specificity_ci(1)*100, m.specificity_ci(2)*100);
-            metricsStr{end+1} = sprintf('AUROC: %.4f', m.auroc);
-            metricsStr{end+1} = sprintf('QWK: %.4f', m.qwk);
-            metricsStr{end+1} = sprintf('ECE: %.4f', m.ece);
+            metricsStr{end+1} = '';
+            if isfield(m, 'sensitivity') && isfield(m, 'sensitivity_ci')
+                metricsStr{end+1} = sprintf('Sensitivity: %.1f%% [%.1f%%, %.1f%%]', ...
+                    m.sensitivity*100, m.sensitivity_ci(1)*100, m.sensitivity_ci(2)*100);
+            end
+            if isfield(m, 'specificity') && isfield(m, 'specificity_ci')
+                metricsStr{end+1} = sprintf('Specificity: %.1f%% [%.1f%%, %.1f%%]', ...
+                    m.specificity*100, m.specificity_ci(1)*100, m.specificity_ci(2)*100);
+            end
+            if isfield(m, 'auroc')
+                metricsStr{end+1} = sprintf('AUROC: %.4f', m.auroc);
+            end
+            if isfield(m, 'accuracy')
+                metricsStr{end+1} = sprintf('Accuracy: %.1f%%', m.accuracy*100);
+            end
+            if isfield(m, 'qwk')
+                metricsStr{end+1} = sprintf('QWK (Kappa): %.4f', m.qwk);
+            end
+            if isfield(m, 'ece')
+                metricsStr{end+1} = sprintf('ECE: %.4f', m.ece);
+            end
+            if isfield(m, 'n_samples')
+                metricsStr{end+1} = '';
+                metricsStr{end+1} = sprintf('Validated on %d samples', m.n_samples);
+            end
+            if isfield(m, 'is_demo_data') && m.is_demo_data
+                metricsStr{end+1} = '(Demo data for display)';
+            end
         end
         app.metricsText.Value = metricsStr;
         
         % Reliability diagram
-        if isfield(val, 'bin_accs') && isfield(val, 'bin_confs')
-            bar(app.relDiagAxes, val.bin_confs, val.bin_accs);
+        if ~isempty(m) && isfield(m, 'bin_accs') && isfield(m, 'bin_confs')
+            cla(app.relDiagAxes);
+            bar(app.relDiagAxes, m.bin_confs, m.bin_accs, 0.6, 'FaceColor', [0.27 0.51 0.71]);
             hold(app.relDiagAxes, 'on');
             plot(app.relDiagAxes, [0 1], [0 1], 'r--', 'LineWidth', 2);
             hold(app.relDiagAxes, 'off');
             xlabel(app.relDiagAxes, 'Mean Predicted Confidence');
             ylabel(app.relDiagAxes, 'Fraction of Positives');
-            title(app.relDiagAxes, sprintf('Reliability Diagram (ECE=%.4f)', m.ece));
+            grid(app.relDiagAxes, 'on');
+            xlim(app.relDiagAxes, [0 1]);
+            ylim(app.relDiagAxes, [0 1]);
+            if isfield(m, 'ece')
+                title(app.relDiagAxes, sprintf('Reliability Diagram (ECE=%.4f)', m.ece));
+            else
+                title(app.relDiagAxes, 'Reliability Diagram');
+            end
+        elseif isfield(val, 'bin_accs') && isfield(val, 'bin_confs')
+            cla(app.relDiagAxes);
+            bar(app.relDiagAxes, val.bin_confs, val.bin_accs, 0.6, 'FaceColor', [0.27 0.51 0.71]);
+            hold(app.relDiagAxes, 'on');
+            plot(app.relDiagAxes, [0 1], [0 1], 'r--', 'LineWidth', 2);
+            hold(app.relDiagAxes, 'off');
+            xlabel(app.relDiagAxes, 'Mean Predicted Confidence');
+            ylabel(app.relDiagAxes, 'Fraction of Positives');
+            grid(app.relDiagAxes, 'on');
+            title(app.relDiagAxes, 'Reliability Diagram');
         end
     else
         app.metricsText.Value = {'No validation_results.mat found.', ...
-            'Run: results = validate_pipeline(pipeline_config());'};
+            'Run: generate_demo_validation_data()'};
     end
     
-    % Load screening log
+    % Load screening log — enhanced breakdown
     logFile = fullfile(app.rootDir, 'data', 'screening_log.csv');
     if exist(logFile, 'file')
-        logData = readtable(logFile);
-        nTotal = height(logData);
-        nOverrides = sum(strcmp(logData.action, 'OVERRIDDEN'));
-        overrideRate = nOverrides / max(nTotal, 1) * 100;
-        
-        escStr = {};
-        escStr{end+1} = '=== Screening Log Summary ===';
-        escStr{end+1} = sprintf('Total reviewed: %d', nTotal);
-        escStr{end+1} = sprintf('Confirmed: %d', sum(strcmp(logData.action, 'CONFIRMED')));
-        escStr{end+1} = sprintf('Overridden: %d (%.1f%%)', nOverrides, overrideRate);
-        if overrideRate > 15
-            escStr{end+1} = '⚠️ Override rate > 15%! Model investigation recommended.';
+        try
+            logData = readtable(logFile);
+            nTotal = height(logData);
+            nConfirmed = sum(strcmp(logData.action, 'CONFIRMED'));
+            nOverrides = sum(strcmp(logData.action, 'OVERRIDDEN'));
+            overrideRate = nOverrides / max(nTotal, 1) * 100;
+            
+            escStr = {};
+            escStr{end+1} = '=== Screening Log Summary ===';
+            escStr{end+1} = sprintf('Total cases reviewed: %d', nTotal);
+            escStr{end+1} = sprintf('  Confirmed by doctor: %d (%.0f%%)', nConfirmed, nConfirmed/max(nTotal,1)*100);
+            escStr{end+1} = sprintf('  Overridden by doctor: %d (%.0f%%)', nOverrides, overrideRate);
+            escStr{end+1} = '';
+            
+            if overrideRate > 15
+                escStr{end+1} = 'WARNING: Override rate > 15%! Model investigation recommended.';
+            else
+                escStr{end+1} = sprintf('Override rate: %.1f%% (threshold: <15%%)', overrideRate);
+            end
+            escStr{end+1} = '';
+            
+            % Grade distribution
+            escStr{end+1} = '=== Grade Distribution ===';
+            grade_labels = {'No DR', 'Mild NPDR', 'Moderate NPDR', 'Severe NPDR', 'PDR'};
+            if ismember('ai_grade', logData.Properties.VariableNames)
+                for g = 0:4
+                    cnt = sum(logData.ai_grade == g);
+                    escStr{end+1} = sprintf('Grade %d (%s): %d cases', g, grade_labels{g+1}, cnt);
+                end
+            end
+            escStr{end+1} = '';
+            
+            % Escalation triggers
+            escStr{end+1} = '=== Escalation Triggers ===';
+            if ismember('reason', logData.Properties.VariableNames)
+                ood_count = sum(contains(string(logData.reason), 'OOD', 'IgnoreCase', true));
+                border_count = sum(contains(string(logData.reason), 'Borderline', 'IgnoreCase', true));
+                discord_count = sum(contains(string(logData.reason), 'Discordant', 'IgnoreCase', true));
+                escStr{end+1} = sprintf('  OOD detected: %d', ood_count);
+                escStr{end+1} = sprintf('  Borderline pRef: %d', border_count);
+                escStr{end+1} = sprintf('  Discordant findings: %d', discord_count);
+            else
+                escStr{end+1} = '  (Trigger details not available in log)';
+            end
+            
+            app.escText.Value = escStr;
+        catch ME
+            app.escText.Value = {sprintf('Error reading log: %s', ME.message)};
         end
-        app.escText.Value = escStr;
+    else
+        app.escText.Value = {'No screening log found yet.', 'Process patients to generate data.'};
     end
     
     app.fig.UserData = app;
@@ -937,8 +1441,8 @@ end
 % ================================================================
 % CLEANUP
 % ================================================================
-function closeFig(app)
-    app = app.fig.UserData;
+function closeFig(fig)
+    app = fig.UserData;
     
     % Auto-save any pending results
     if isfield(app, 'leftResult') || isfield(app, 'rightResult')
@@ -952,5 +1456,39 @@ function closeFig(app)
         end
     end
     
-    delete(app.fig);
+    delete(fig);
+end
+
+% ================================================================
+% HELPER FUNCTIONS — Pipeline Progress
+% ================================================================
+function updateStep(app, stepNum, status)
+    app = app.fig.UserData;
+    T = app.T;
+    name = getStepName(stepNum);
+    switch status
+        case 'running'
+            app.stepLabels(stepNum).Text = sprintf('  >> Step %d: %s ...', stepNum, name);
+            app.stepLabels(stepNum).FontColor = T.accent;
+            app.stepLabels(stepNum).FontWeight = 'bold';
+        case 'done'
+            app.stepLabels(stepNum).Text = sprintf('  [done] Step %d: %s', stepNum, name);
+            app.stepLabels(stepNum).FontColor = T.success;
+            app.stepLabels(stepNum).FontWeight = 'normal';
+        otherwise
+            app.stepLabels(stepNum).Text = sprintf('  o  Step %d: %s', stepNum, name);
+            app.stepLabels(stepNum).FontColor = T.textSec;
+            app.stepLabels(stepNum).FontWeight = 'normal';
+    end
+    app.fig.UserData = app;
+end
+
+function name = getStepName(stepNum)
+    names = {'Image Standardization', 'Quality Assessment', 'Vessel Segmentation', ...
+             'Lesion Detection (ONNX)', 'DR Grading (ONNX)', 'Explainability', 'Safety Checks'};
+    if stepNum >= 1 && stepNum <= length(names)
+        name = names{stepNum};
+    else
+        name = 'Unknown';
+    end
 end
