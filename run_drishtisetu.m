@@ -432,10 +432,34 @@ function app = buildDoctorPanel(app)
         'BackgroundColor', [0.96 0.97 0.99], 'BorderType', 'line', 'BorderColor', T.border, ...
         'Title', '', 'FontSize', 1);
     uilabel(metricsBox, 'Position', [10 194 200 22], ...
-        'Text', '📊  Metrics', 'FontSize', 12, 'FontWeight', 'bold', 'FontColor', T.header);
-    app.docMetricsLabel = uilabel(metricsBox, 'Position', [10 6 314 188], ...
-        'Text', '', 'FontSize', 11, 'WordWrap', 'on', 'VerticalAlignment', 'top', ...
-        'FontColor', T.textPri);
+        'Text', 'Clinical Summary', 'FontSize', 12, 'FontWeight', 'bold', 'FontColor', T.header);
+    
+    % Grade badge (large, colored)
+    app.docGradeBadge = uilabel(metricsBox, 'Position', [10 150 314 40], ...
+        'Text', '', 'FontSize', 16, 'FontWeight', 'bold', ...
+        'FontColor', 'white', 'BackgroundColor', [0.55 0.58 0.63], ...
+        'HorizontalAlignment', 'center');
+    
+    % Referral probability
+    app.docRefLabel = uilabel(metricsBox, 'Position', [10 122 314 26], ...
+        'Text', '', 'FontSize', 11, 'FontColor', T.textPri);
+    
+    % Confidence
+    app.docConfLabel = uilabel(metricsBox, 'Position', [10 98 314 22], ...
+        'Text', '', 'FontSize', 11, 'FontColor', T.textSec);
+    
+    % Agreement
+    app.docAgreeLabel = uilabel(metricsBox, 'Position', [10 74 155 22], ...
+        'Text', '', 'FontSize', 11, 'FontColor', T.textPri);
+    
+    % DME
+    app.docDmeLabel = uilabel(metricsBox, 'Position', [170 74 154 22], ...
+        'Text', '', 'FontSize', 11, 'FontColor', T.textPri);
+    
+    % Recommendation
+    app.docRecLabel = uilabel(metricsBox, 'Position', [10 6 314 64], ...
+        'Text', '', 'FontSize', 11, 'FontWeight', 'bold', 'WordWrap', 'on', ...
+        'VerticalAlignment', 'top', 'FontColor', T.header);
     
     % ── Doctor actions bar (bottom) ──
     actionBox = uipanel(detailBox, 'Position', [10 10 944 122], ...
@@ -473,69 +497,192 @@ function app = buildDistrictPanel(app)
     p = app.distPanel;
     T = app.T;
     
-    % Left: Metrics
-    metricsBox = uipanel(p, 'Position', [12 400 644 380], ...
+    % ── TAB GROUP for organized sections ──
+    app.distTabGroup = uitabgroup(p, 'Position', [0 0 1320 792]);
+    
+    % ══════════════════════════════════════════════════════
+    % TAB 1: SCREENING SIMULATION (Hero Tab)
+    % ══════════════════════════════════════════════════════
+    simTab = uitab(app.distTabGroup, 'Title', '  Screening Simulation  ', ...
+        'BackgroundColor', T.bg);
+    
+    % -- Top: KPI Cards Row --
+    kpiW = 300; kpiH = 82;
+    kpiY = 648;
+    kpiColors = {[0.165 0.510 0.820], [0.086 0.608 0.290], ...
+                 [0.886 0.627 0.086], [0.816 0.133 0.133]};
+    kpiTitles = {'Months to Screen All', 'Patients / Month', ...
+                 'Doctor Utilization', 'Treatment Gap'};
+    
+    for k = 1:4
+        kx = 12 + (k-1)*(kpiW+12);
+        kpiPanel = uipanel(simTab, 'Position', [kx kpiY kpiW kpiH], ...
+            'BackgroundColor', kpiColors{k}, 'BorderType', 'none');
+        uilabel(kpiPanel, 'Position', [12 54 280 22], ...
+            'Text', kpiTitles{k}, 'FontSize', 11, 'FontColor', [1 1 1]);
+        app.kpiValues(k) = uilabel(kpiPanel, 'Position', [12 4 280 48], ...
+            'Text', '--', 'FontSize', 30, 'FontWeight', 'bold', ...
+            'FontColor', [1 1 1]);
+    end
+    
+    % -- Left: Parameter Controls --
+    paramBox = uipanel(simTab, 'Position', [12 8 300 628], ...
         'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
         'Title', '', 'FontSize', 1);
-    uilabel(metricsBox, 'Position', [14 348 300 24], ...
-        'Text', '📊  Validation Metrics', 'FontSize', 14, 'FontWeight', 'bold', 'FontColor', T.header);
-    app.metricsText = uitextarea(metricsBox, 'Position', [10 10 624 336], ...
-        'FontSize', 11, 'Editable', 'off', ...
-        'Value', {'Metrics will load from validation_results.mat', ...
-                  'Run validate_pipeline(pipeline_config()) to generate.'});
+    uilabel(paramBox, 'Position', [12 596 280 24], ...
+        'Text', 'Simulation Parameters', 'FontSize', 13, ...
+        'FontWeight', 'bold', 'FontColor', T.header);
     
-    % Right: Reliability diagram
-    reliabilityBox = uipanel(p, 'Position', [668 400 640 380], ...
-        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
-        'Title', '', 'FontSize', 1);
-    uilabel(reliabilityBox, 'Position', [14 348 300 24], ...
-        'Text', '📈  Reliability Diagram', 'FontSize', 14, 'FontWeight', 'bold', 'FontColor', T.header);
-    app.relDiagAxes = uiaxes(reliabilityBox, 'Position', [10 10 620 330]);
-    title(app.relDiagAxes, 'Reliability Diagram');
-    
-    % Left bottom: Escalation
-    escBox = uipanel(p, 'Position', [12 10 644 380], ...
-        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
-        'Title', '', 'FontSize', 1);
-    uilabel(escBox, 'Position', [14 348 300 24], ...
-        'Text', '🔔  Escalation Breakdown', 'FontSize', 14, 'FontWeight', 'bold', 'FontColor', T.header);
-    app.escText = uitextarea(escBox, 'Position', [10 10 624 336], ...
-        'FontSize', 11, 'Editable', 'off', ...
-        'Value', {'Escalation breakdown and ablation results will appear here.'});
-    
-    % Right bottom: Simulation
-    simBox = uipanel(p, 'Position', [668 10 640 380], ...
-        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
-        'Title', '', 'FontSize', 1);
-    uilabel(simBox, 'Position', [14 348 300 24], ...
-        'Text', '⚙  Screening Simulation', 'FontSize', 14, 'FontWeight', 'bold', 'FontColor', T.header);
-    
-    uilabel(simBox, 'Position', [15 310 150 22], 'Text', 'Population:', 'FontSize', 11, 'FontColor', T.textSec);
-    app.simPopField = uieditfield(simBox, 'numeric', 'Position', [170 308 100 24], 'Value', 500000);
-    
-    uilabel(simBox, 'Position', [15 280 150 22], 'Text', 'DM Prevalence:', 'FontSize', 11, 'FontColor', T.textSec);
-    app.simDmField = uieditfield(simBox, 'numeric', 'Position', [170 278 100 24], 'Value', 0.12);
-    
-    uilabel(simBox, 'Position', [15 250 150 22], 'Text', 'Camp days/month:', 'FontSize', 11, 'FontColor', T.textSec);
-    app.simCampField = uieditfield(simBox, 'numeric', 'Position', [170 248 100 24], 'Value', 4);
-    
-    uilabel(simBox, 'Position', [15 220 150 22], 'Text', 'Devices/camp:', 'FontSize', 11, 'FontColor', T.textSec);
-    app.simDevField = uieditfield(simBox, 'numeric', 'Position', [170 218 100 24], 'Value', 3);
-    
-    uilabel(simBox, 'Position', [290 310 170 22], 'Text', 'Referral adherence:', 'FontSize', 11, 'FontColor', T.textSec);
-    app.simAdhSlider = uislider(simBox, 'Position', [290 295 270 3], ...
-        'Limits', [0.11 0.57], 'Value', 0.145);
-    app.simAdhLabel = uilabel(simBox, 'Position', [565 288 50 22], 'Text', '14.5%', 'FontSize', 10, 'FontColor', T.textSec);
+    pY = 560;
+    uilabel(paramBox, 'Position', [12 pY 130 20], 'Text', 'Population:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simPopField = uieditfield(paramBox, 'numeric', 'Position', [150 pY-2 130 26], ...
+        'Value', 500000, 'FontSize', 11);
+    pY = pY - 36;
+    uilabel(paramBox, 'Position', [12 pY 130 20], 'Text', 'DM Prevalence:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simDmField = uieditfield(paramBox, 'numeric', 'Position', [150 pY-2 130 26], ...
+        'Value', 0.12, 'FontSize', 11);
+    pY = pY - 36;
+    uilabel(paramBox, 'Position', [12 pY 130 20], 'Text', 'Camp days/month:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simCampField = uieditfield(paramBox, 'numeric', 'Position', [150 pY-2 130 26], ...
+        'Value', 4, 'FontSize', 11);
+    pY = pY - 36;
+    uilabel(paramBox, 'Position', [12 pY 130 20], 'Text', 'Devices/camp:', 'FontSize', 11, 'FontColor', T.textSec);
+    app.simDevField = uieditfield(paramBox, 'numeric', 'Position', [150 pY-2 130 26], ...
+        'Value', 3, 'FontSize', 11);
+    pY = pY - 36;
+    uilabel(paramBox, 'Position', [12 pY 130 20], 'Text', 'Referral adherence:', 'FontSize', 11, 'FontColor', T.textSec);
+    pY = pY - 28;
+    app.simAdhSlider = uislider(paramBox, 'Position', [20 pY+10 230 3], ...
+        'Limits', [0.05 0.60], 'Value', 0.145);
+    app.simAdhLabel = uilabel(paramBox, 'Position', [210 pY-12 70 22], ...
+        'Text', '14.5%', 'FontSize', 11, 'FontWeight', 'bold', 'FontColor', T.accent);
     app.simAdhSlider.ValueChangedFcn = @(s,~) set(app.simAdhLabel, 'Text', sprintf('%.1f%%', s.Value*100));
     
-    app.runSimBtn = uibutton(simBox, 'Position', [290 242 280 32], ...
-        'Text', '▶  Run Simulation', 'FontSize', 12, 'FontWeight', 'bold', ...
+    pY = pY - 48;
+    app.runSimBtn = uibutton(paramBox, 'Position', [12 pY 268 42], ...
+        'Text', 'Run Simulation', 'FontSize', 14, 'FontWeight', 'bold', ...
         'BackgroundColor', T.accent, 'FontColor', 'white', ...
         'ButtonPushedFcn', @(~,~) runSimFromGUI(app));
     
-    app.simResultText = uitextarea(simBox, 'Position', [15 10 600 200], ...
-        'FontSize', 10, 'Editable', 'off', ...
-        'Value', {'Simulation results will appear here.'});
+    pY = pY - 38;
+    uilabel(paramBox, 'Position', [12 pY 268 16], 'Text', 'BOTTLENECK:', ...
+        'FontSize', 9, 'FontWeight', 'bold', 'FontColor', T.textSec);
+    app.bottleneckLabel = uilabel(paramBox, 'Position', [12 pY-28 268 26], ...
+        'Text', 'Run simulation first', 'FontSize', 12, 'FontWeight', 'bold', ...
+        'FontColor', 'white', 'BackgroundColor', [0.55 0.58 0.63], ...
+        'HorizontalAlignment', 'center');
+    
+    app.simResultText = uitextarea(paramBox, 'Position', [12 10 268 pY-60], ...
+        'FontSize', 9, 'Editable', 'off', ...
+        'Value', {'Click Run Simulation to see detailed results.'});
+    
+    % -- Center: Sweep Matrix Heatmap (the star visual) --
+    sweepBox = uipanel(simTab, 'Position', [324 8 646 628], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(sweepBox, 'Position', [12 596 600 24], ...
+        'Text', 'Coverage Heatmap: Months to Screen All Diabetics', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    uilabel(sweepBox, 'Position', [12 576 600 18], ...
+        'Text', 'Camp Days x Devices -> Months needed (lower = better, green = good)', ...
+        'FontSize', 10, 'FontColor', T.textSec);
+    app.sweepAxes = uiaxes(sweepBox, 'Position', [35 30 580 540]);
+    
+    % -- Right: Treatment Gap Chart --
+    gapBox = uipanel(simTab, 'Position', [982 8 296 628], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(gapBox, 'Position', [12 596 270 24], ...
+        'Text', 'Treatment Gap', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.treatmentAxes = uiaxes(gapBox, 'Position', [20 260 256 320]);
+    
+    app.gapInfoLabel = uilabel(gapBox, 'Position', [12 10 272 240], ...
+        'Text', '', 'FontSize', 11, 'WordWrap', 'on', 'VerticalAlignment', 'top', ...
+        'FontColor', T.textPri);
+    
+    % ══════════════════════════════════════════════════════
+    % TAB 2: MODEL VALIDATION
+    % ══════════════════════════════════════════════════════
+    valTab = uitab(app.distTabGroup, 'Title', '  Model Validation  ', ...
+        'BackgroundColor', T.bg);
+    
+    % KPI Cards row
+    valKpiW = 295; valKpiH = 90;
+    valNames = {'Sensitivity', 'Specificity', 'AUROC', 'QWK (Kappa)'};
+    valColors = {[0.165 0.510 0.820], [0.086 0.608 0.290], ...
+                 [0.50 0.28 0.65], [0.886 0.627 0.086]};
+    
+    for k = 1:4
+        kx = 12 + (k-1)*(valKpiW+16);
+        vkpi = uipanel(valTab, 'Position', [kx 640 valKpiW valKpiH], ...
+            'BackgroundColor', valColors{k}, 'BorderType', 'none');
+        uilabel(vkpi, 'Position', [12 62 270 22], ...
+            'Text', valNames{k}, 'FontSize', 12, 'FontColor', [1 1 1]);
+        app.valKpiValues(k) = uilabel(vkpi, 'Position', [12 4 270 56], ...
+            'Text', '--', 'FontSize', 34, 'FontWeight', 'bold', ...
+            'FontColor', [1 1 1]);
+    end
+    
+    % Reliability Diagram (large, left)
+    relBox = uipanel(valTab, 'Position', [12 8 820 620], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(relBox, 'Position', [12 588 400 24], ...
+        'Text', 'Reliability Diagram (Calibration)', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.relDiagAxes = uiaxes(relBox, 'Position', [40 30 740 550]);
+    title(app.relDiagAxes, 'Reliability Diagram');
+    
+    % Detailed Metrics panel (right)
+    valInfoBox = uipanel(valTab, 'Position', [844 8 434 620], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(valInfoBox, 'Position', [12 588 400 24], ...
+        'Text', 'Detailed Metrics', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.metricsText = uitextarea(valInfoBox, 'Position', [10 10 414 572], ...
+        'FontSize', 11, 'Editable', 'off', ...
+        'Value', {'Validation metrics load automatically.'});
+    
+    % ══════════════════════════════════════════════════════
+    % TAB 3: ESCALATION & OVERSIGHT
+    % ══════════════════════════════════════════════════════
+    escTab = uitab(app.distTabGroup, 'Title', '  Escalation & Oversight  ', ...
+        'BackgroundColor', T.bg);
+    
+    % Grade Distribution Chart (left)
+    gradeBox = uipanel(escTab, 'Position', [12 310 640 420], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(gradeBox, 'Position', [12 388 400 24], ...
+        'Text', 'Grade Distribution (AI Predictions)', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.gradeDistAxes = uiaxes(gradeBox, 'Position', [30 20 580 360]);
+    xlabel(app.gradeDistAxes, 'ICDR Grade');
+    ylabel(app.gradeDistAxes, 'Number of Cases');
+    title(app.gradeDistAxes, 'DR Grade Distribution');
+    
+    % Override Analysis (right)
+    overrideBox = uipanel(escTab, 'Position', [664 310 614 420], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(overrideBox, 'Position', [12 388 400 24], ...
+        'Text', 'Doctor Override Analysis', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.overrideAxes = uiaxes(overrideBox, 'Position', [30 20 554 360]);
+    title(app.overrideAxes, 'Confirmed vs Overridden');
+    
+    % Escalation Log Details (bottom full width)
+    escLogBox = uipanel(escTab, 'Position', [12 8 1266 292], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(escLogBox, 'Position', [12 260 400 24], ...
+        'Text', 'Escalation Details & Triggers', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.escText = uitextarea(escLogBox, 'Position', [10 10 1246 246], ...
+        'FontSize', 11, 'Editable', 'off', ...
+        'Value', {'Escalation data will appear after patients are processed.'});
 end
 
 % ================================================================
@@ -1018,7 +1165,13 @@ function refreshDoctorQueue(app)
         app.escReasonLabel.Text = '';
         cla(app.docImgAxes); cla(app.docOverlayAxes); cla(app.docGcamAxes);
         app.evidenceText.Value = {'No cases to review'};
-        app.docMetricsLabel.Text = '';
+        app.docGradeBadge.Text = '';
+        app.docGradeBadge.BackgroundColor = [0.55 0.58 0.63];
+        app.docRefLabel.Text = '';
+        app.docConfLabel.Text = '';
+        app.docAgreeLabel.Text = '';
+        app.docDmeLabel.Text = '';
+        app.docRecLabel.Text = '';
         app.confirmBtn.Enable = 'off';
         app.overrideBtn.Enable = 'off';
         app.fig.UserData = app;
@@ -1155,21 +1308,48 @@ function loadEscalatedCase(app, selectedValue)
     
     rec = app.cfg.urgency_labels{min(c.grade_result.grade + 1, 5)};
     
-    metricLines = {};
-    metricLines{end+1} = sprintf('DR Severity: Grade %d (%s)', c.grade_result.grade, grade_name);
-    metricLines{end+1} = '';
-    metricLines{end+1} = sprintf('Referral Probability: %.1f%%', c.grade_result.pRef * 100);
-    metricLines{end+1} = '(>85% = Refer to ophthalmologist)';
-    metricLines{end+1} = '';
-    metricLines{end+1} = sprintf('AI Confidence: %.1f%%', c.grade_result.confidence * 100);
-    metricLines{end+1} = '(How certain the AI is)';
-    metricLines{end+1} = '';
-    metricLines{end+1} = sprintf('Model Agreement: %s', agree_str);
-    metricLines{end+1} = '';
-    metricLines{end+1} = sprintf('Macular Edema: %s', dme_str);
-    metricLines{end+1} = '';
-    metricLines{end+1} = sprintf('Recommendation: %s', rec);
-    app.docMetricsLabel.Text = strjoin(metricLines, newline);
+    % Populate individual KPI cards
+    % Grade badge with severity color
+    gradeColors = {[0.30 0.69 0.29], [0.60 0.80 0.20], [0.99 0.75 0.18], ...
+                   [0.96 0.49 0.00], [0.84 0.15 0.16]};
+    if c.grade_result.grade >= 0 && c.grade_result.grade <= 4
+        app.docGradeBadge.BackgroundColor = gradeColors{c.grade_result.grade + 1};
+    end
+    app.docGradeBadge.Text = sprintf('Grade %d  —  %s', c.grade_result.grade, grade_name);
+    
+    % Referral probability with interpretation
+    pRefPct = c.grade_result.pRef * 100;
+    if pRefPct > 85
+        app.docRefLabel.Text = sprintf('Referral: %.0f%%  (REFER)', pRefPct);
+        app.docRefLabel.FontColor = app.T.danger;
+    else
+        app.docRefLabel.Text = sprintf('Referral: %.0f%%  (Monitor)', pRefPct);
+        app.docRefLabel.FontColor = app.T.success;
+    end
+    
+    % Confidence
+    app.docConfLabel.Text = sprintf('AI Confidence: %.1f%%', c.grade_result.confidence * 100);
+    
+    % Agreement
+    if strcmp(agree_str, 'Yes')
+        app.docAgreeLabel.Text = 'Agreement: Yes';
+        app.docAgreeLabel.FontColor = app.T.success;
+    else
+        app.docAgreeLabel.Text = 'Agreement: No';
+        app.docAgreeLabel.FontColor = app.T.danger;
+    end
+    
+    % DME
+    if strcmp(dme_str, 'SUSPECTED')
+        app.docDmeLabel.Text = 'DME: SUSPECTED';
+        app.docDmeLabel.FontColor = app.T.danger;
+    else
+        app.docDmeLabel.Text = 'DME: None';
+        app.docDmeLabel.FontColor = app.T.success;
+    end
+    
+    % Recommendation
+    app.docRecLabel.Text = sprintf('Rec: %s', rec);
     
     app.confirmBtn.Enable = 'on';
     app.overrideBtn.Enable = 'on';
@@ -1252,13 +1432,13 @@ end
 function refreshDistrictDashboard(app)
     app = app.fig.UserData;
     cfg = app.cfg;
+    T = app.T;
     
-    % Load validation results if available
+    % ── Load validation results (Tab 2: Validation) ──
     valFile = fullfile(cfg.model_dir, 'validation_results.mat');
     if exist(valFile, 'file')
         val = load(valFile);
         
-        % The generate_demo_validation_data saves under 'results' struct
         m = [];
         if isfield(val, 'results')
             m = val.results;
@@ -1266,18 +1446,34 @@ function refreshDistrictDashboard(app)
             m = val.metrics;
         end
         
-        metricsStr = {};
         if ~isempty(m)
-            metricsStr{end+1} = '=== Validation Metrics ===';
+            % Populate Validation KPI Cards
+            if isfield(m, 'sensitivity')
+                app.valKpiValues(1).Text = sprintf('%.1f%%', m.sensitivity*100);
+            end
+            if isfield(m, 'specificity')
+                app.valKpiValues(2).Text = sprintf('%.1f%%', m.specificity*100);
+            end
+            if isfield(m, 'auroc')
+                app.valKpiValues(3).Text = sprintf('%.3f', m.auroc);
+            end
+            if isfield(m, 'qwk')
+                app.valKpiValues(4).Text = sprintf('%.3f', m.qwk);
+            end
+            
+            % Detailed metrics text
+            metricsStr = {};
+            metricsStr{end+1} = '=== Model Validation Report ===';
             metricsStr{end+1} = '';
             if isfield(m, 'sensitivity') && isfield(m, 'sensitivity_ci')
-                metricsStr{end+1} = sprintf('Sensitivity: %.1f%% [%.1f%%, %.1f%%]', ...
-                    m.sensitivity*100, m.sensitivity_ci(1)*100, m.sensitivity_ci(2)*100);
+                metricsStr{end+1} = sprintf('Sensitivity: %.1f%%', m.sensitivity*100);
+                metricsStr{end+1} = sprintf('  95%% CI: [%.1f%%, %.1f%%]', m.sensitivity_ci(1)*100, m.sensitivity_ci(2)*100);
             end
             if isfield(m, 'specificity') && isfield(m, 'specificity_ci')
-                metricsStr{end+1} = sprintf('Specificity: %.1f%% [%.1f%%, %.1f%%]', ...
-                    m.specificity*100, m.specificity_ci(1)*100, m.specificity_ci(2)*100);
+                metricsStr{end+1} = sprintf('Specificity: %.1f%%', m.specificity*100);
+                metricsStr{end+1} = sprintf('  95%% CI: [%.1f%%, %.1f%%]', m.specificity_ci(1)*100, m.specificity_ci(2)*100);
             end
+            metricsStr{end+1} = '';
             if isfield(m, 'auroc')
                 metricsStr{end+1} = sprintf('AUROC: %.4f', m.auroc);
             end
@@ -1286,54 +1482,61 @@ function refreshDistrictDashboard(app)
             end
             if isfield(m, 'qwk')
                 metricsStr{end+1} = sprintf('QWK (Kappa): %.4f', m.qwk);
+                if m.qwk >= 0.80
+                    metricsStr{end+1} = '  Interpretation: Almost perfect agreement';
+                elseif m.qwk >= 0.60
+                    metricsStr{end+1} = '  Interpretation: Substantial agreement';
+                end
             end
             if isfield(m, 'ece')
                 metricsStr{end+1} = sprintf('ECE: %.4f', m.ece);
+                if m.ece < 0.05
+                    metricsStr{end+1} = '  Interpretation: Well-calibrated';
+                end
             end
+            metricsStr{end+1} = '';
             if isfield(m, 'n_samples')
-                metricsStr{end+1} = '';
                 metricsStr{end+1} = sprintf('Validated on %d samples', m.n_samples);
             end
             if isfield(m, 'is_demo_data') && m.is_demo_data
-                metricsStr{end+1} = '(Demo data for display)';
+                metricsStr{end+1} = '';
+                metricsStr{end+1} = '(Demo data for display purposes)';
             end
-        end
-        app.metricsText.Value = metricsStr;
-        
-        % Reliability diagram
-        if ~isempty(m) && isfield(m, 'bin_accs') && isfield(m, 'bin_confs')
-            cla(app.relDiagAxes);
-            bar(app.relDiagAxes, m.bin_confs, m.bin_accs, 0.6, 'FaceColor', [0.27 0.51 0.71]);
-            hold(app.relDiagAxes, 'on');
-            plot(app.relDiagAxes, [0 1], [0 1], 'r--', 'LineWidth', 2);
-            hold(app.relDiagAxes, 'off');
-            xlabel(app.relDiagAxes, 'Mean Predicted Confidence');
-            ylabel(app.relDiagAxes, 'Fraction of Positives');
-            grid(app.relDiagAxes, 'on');
-            xlim(app.relDiagAxes, [0 1]);
-            ylim(app.relDiagAxes, [0 1]);
-            if isfield(m, 'ece')
-                title(app.relDiagAxes, sprintf('Reliability Diagram (ECE=%.4f)', m.ece));
-            else
-                title(app.relDiagAxes, 'Reliability Diagram');
+            app.metricsText.Value = metricsStr;
+            
+            % Reliability diagram
+            if isfield(m, 'bin_accs') && isfield(m, 'bin_confs')
+                cla(app.relDiagAxes);
+                nBins = length(m.bin_confs);
+                binW = 0.8 / nBins;
+                
+                % Gradient color bars
+                cmap = parula(nBins);
+                hold(app.relDiagAxes, 'on');
+                for bi = 1:nBins
+                    bar(app.relDiagAxes, m.bin_confs(bi), m.bin_accs(bi), binW, ...
+                        'FaceColor', cmap(bi,:), 'EdgeColor', [0.3 0.3 0.3]);
+                end
+                plot(app.relDiagAxes, [0 1], [0 1], 'r--', 'LineWidth', 2);
+                hold(app.relDiagAxes, 'off');
+                xlabel(app.relDiagAxes, 'Mean Predicted Confidence');
+                ylabel(app.relDiagAxes, 'Fraction of Positives');
+                grid(app.relDiagAxes, 'on');
+                xlim(app.relDiagAxes, [0 1]);
+                ylim(app.relDiagAxes, [0 1]);
+                if isfield(m, 'ece')
+                    title(app.relDiagAxes, sprintf('Reliability Diagram (ECE = %.4f)', m.ece));
+                else
+                    title(app.relDiagAxes, 'Reliability Diagram');
+                end
             end
-        elseif isfield(val, 'bin_accs') && isfield(val, 'bin_confs')
-            cla(app.relDiagAxes);
-            bar(app.relDiagAxes, val.bin_confs, val.bin_accs, 0.6, 'FaceColor', [0.27 0.51 0.71]);
-            hold(app.relDiagAxes, 'on');
-            plot(app.relDiagAxes, [0 1], [0 1], 'r--', 'LineWidth', 2);
-            hold(app.relDiagAxes, 'off');
-            xlabel(app.relDiagAxes, 'Mean Predicted Confidence');
-            ylabel(app.relDiagAxes, 'Fraction of Positives');
-            grid(app.relDiagAxes, 'on');
-            title(app.relDiagAxes, 'Reliability Diagram');
         end
     else
         app.metricsText.Value = {'No validation_results.mat found.', ...
             'Run: generate_demo_validation_data()'};
     end
     
-    % Load screening log — enhanced breakdown
+    % ── Load screening log (Tab 3: Escalation) ──
     logFile = fullfile(app.rootDir, 'data', 'screening_log.csv');
     if exist(logFile, 'file')
         try
@@ -1343,30 +1546,91 @@ function refreshDistrictDashboard(app)
             nOverrides = sum(strcmp(logData.action, 'OVERRIDDEN'));
             overrideRate = nOverrides / max(nTotal, 1) * 100;
             
+            % ── Grade Distribution Bar Chart ──
+            if ismember('ai_grade', logData.Properties.VariableNames)
+                cla(app.gradeDistAxes);
+                gradeCounts = zeros(1, 5);
+                for g = 0:4
+                    gradeCounts(g+1) = sum(logData.ai_grade == g);
+                end
+                gradeColors = [0.30 0.69 0.29;   % Grade 0 - green
+                               0.60 0.80 0.20;   % Grade 1 - lime
+                               0.99 0.75 0.18;   % Grade 2 - amber
+                               0.96 0.49 0.00;   % Grade 3 - orange
+                               0.84 0.15 0.16];  % Grade 4 - red
+                hold(app.gradeDistAxes, 'on');
+                for g = 1:5
+                    bar(app.gradeDistAxes, g, gradeCounts(g), 0.6, ...
+                        'FaceColor', gradeColors(g,:), 'EdgeColor', 'none');
+                end
+                hold(app.gradeDistAxes, 'off');
+                set(app.gradeDistAxes, 'XTick', 1:5, ...
+                    'XTickLabel', {'G0 No DR', 'G1 Mild', 'G2 Mod', 'G3 Sev', 'G4 PDR'});
+                ylabel(app.gradeDistAxes, 'Number of Cases');
+                title(app.gradeDistAxes, 'DR Grade Distribution');
+                grid(app.gradeDistAxes, 'on');
+            end
+            
+            % ── Override Analysis Pie Chart ──
+            cla(app.overrideAxes);
+            if nTotal > 0
+                pieData = [nConfirmed, nOverrides];
+                pieLabels = {sprintf('Confirmed (%d)', nConfirmed), ...
+                             sprintf('Overridden (%d)', nOverrides)};
+                pieColors = [T.success; T.warning];
+                
+                % Draw as horizontal stacked bar (more compact than pie)
+                barh(app.overrideAxes, 1, nConfirmed, 'FaceColor', T.success, 'EdgeColor', 'none');
+                hold(app.overrideAxes, 'on');
+                barh(app.overrideAxes, 1, nOverrides, 'FaceColor', T.warning, ...
+                    'EdgeColor', 'none', 'BaseValue', nConfirmed);
+                % Add labels
+                if nConfirmed > 0
+                    text(app.overrideAxes, nConfirmed/2, 1, ...
+                        sprintf('Confirmed: %d', nConfirmed), ...
+                        'HorizontalAlignment', 'center', 'FontSize', 11, ...
+                        'FontWeight', 'bold', 'Color', 'w');
+                end
+                if nOverrides > 0
+                    text(app.overrideAxes, nConfirmed + nOverrides/2, 1, ...
+                        sprintf('Override: %d', nOverrides), ...
+                        'HorizontalAlignment', 'center', 'FontSize', 11, ...
+                        'FontWeight', 'bold', 'Color', 'w');
+                end
+                hold(app.overrideAxes, 'off');
+                ylim(app.overrideAxes, [0.4 1.6]);
+                set(app.overrideAxes, 'YTick', []);
+                xlabel(app.overrideAxes, 'Number of Cases');
+                title(app.overrideAxes, sprintf('Doctor Decisions (Override rate: %.1f%%)', overrideRate));
+            else
+                title(app.overrideAxes, 'No doctor decisions yet');
+            end
+            
+            % ── Escalation Log Text ──
             escStr = {};
             escStr{end+1} = '=== Screening Log Summary ===';
             escStr{end+1} = sprintf('Total cases reviewed: %d', nTotal);
-            escStr{end+1} = sprintf('  Confirmed by doctor: %d (%.0f%%)', nConfirmed, nConfirmed/max(nTotal,1)*100);
-            escStr{end+1} = sprintf('  Overridden by doctor: %d (%.0f%%)', nOverrides, overrideRate);
+            escStr{end+1} = sprintf('  Confirmed: %d (%.0f%%)    |    Overridden: %d (%.0f%%)', ...
+                nConfirmed, nConfirmed/max(nTotal,1)*100, nOverrides, overrideRate);
             escStr{end+1} = '';
             
             if overrideRate > 15
                 escStr{end+1} = 'WARNING: Override rate > 15%! Model investigation recommended.';
             else
-                escStr{end+1} = sprintf('Override rate: %.1f%% (threshold: <15%%)', overrideRate);
+                escStr{end+1} = sprintf('Override rate: %.1f%% (threshold: <15%% — acceptable)', overrideRate);
             end
             escStr{end+1} = '';
             
-            % Grade distribution
-            escStr{end+1} = '=== Grade Distribution ===';
+            % Grade details
             grade_labels = {'No DR', 'Mild NPDR', 'Moderate NPDR', 'Severe NPDR', 'PDR'};
             if ismember('ai_grade', logData.Properties.VariableNames)
+                escStr{end+1} = '=== Grade Breakdown ===';
                 for g = 0:4
                     cnt = sum(logData.ai_grade == g);
-                    escStr{end+1} = sprintf('Grade %d (%s): %d cases', g, grade_labels{g+1}, cnt);
+                    escStr{end+1} = sprintf('  Grade %d (%s): %d cases', g, grade_labels{g+1}, cnt);
                 end
+                escStr{end+1} = '';
             end
-            escStr{end+1} = '';
             
             % Escalation triggers
             escStr{end+1} = '=== Escalation Triggers ===';
@@ -1394,6 +1658,7 @@ end
 
 function runSimFromGUI(app)
     app = app.fig.UserData;
+    T = app.T;
     
     params = struct();
     params.population = app.simPopField.Value;
@@ -1405,22 +1670,119 @@ function runSimFromGUI(app)
     try
         sim_results = run_simulation(app.cfg, params);
         
+        % ── Update KPI Cards ──
+        app.kpiValues(1).Text = sprintf('%.1f mo', sim_results.months_to_screen);
+        app.kpiValues(2).Text = formatNum(sim_results.patients_per_month);
+        app.kpiValues(3).Text = sprintf('%.0f%%', sim_results.doctor_utilization * 100);
+        app.kpiValues(4).Text = formatNum(round(sim_results.treatment_gap));
+        
+        % Color code doctor utilization
+        if sim_results.doctor_utilization > 1.0
+            app.kpiValues(3).Parent.BackgroundColor = [0.816 0.133 0.133]; % red
+        elseif sim_results.doctor_utilization > 0.8
+            app.kpiValues(3).Parent.BackgroundColor = [0.886 0.627 0.086]; % amber
+        else
+            app.kpiValues(3).Parent.BackgroundColor = [0.086 0.608 0.290]; % green
+        end
+        
+        % ── Bottleneck Indicator ──
+        app.bottleneckLabel.Text = sim_results.bottleneck;
+        if contains(sim_results.bottleneck, 'Doctor')
+            app.bottleneckLabel.BackgroundColor = T.danger;
+        else
+            app.bottleneckLabel.BackgroundColor = T.warning;
+        end
+        
+        % ── Sweep Matrix Heatmap ──
+        if isfield(sim_results, 'sweep_matrix')
+            cla(app.sweepAxes);
+            camp_days_sweep = 2:2:20;
+            devices_sweep = 1:5;
+            
+            imagesc(app.sweepAxes, devices_sweep, camp_days_sweep, sim_results.sweep_matrix);
+            colorbar(app.sweepAxes);
+            
+            % Custom green-yellow-red colormap (green=fast, red=slow)
+            nColors = 256;
+            greenToRed = zeros(nColors, 3);
+            for ci = 1:nColors
+                t = (ci-1)/(nColors-1);
+                if t < 0.5
+                    greenToRed(ci,:) = [2*t, 0.75+0.25*(1-2*t), 0.15*(1-2*t)];
+                else
+                    greenToRed(ci,:) = [1, 0.75*(1-2*(t-0.5)), 0];
+                end
+            end
+            colormap(app.sweepAxes, flipud(greenToRed));
+            
+            xlabel(app.sweepAxes, 'Devices per Camp');
+            ylabel(app.sweepAxes, 'Camp Days per Month');
+            title(app.sweepAxes, 'Months to Screen All Diabetics');
+            set(app.sweepAxes, 'YDir', 'normal');
+            set(app.sweepAxes, 'XTick', devices_sweep, 'YTick', camp_days_sweep);
+            
+            % Add text labels on each cell
+            hold(app.sweepAxes, 'on');
+            for i = 1:length(camp_days_sweep)
+                for j = 1:length(devices_sweep)
+                    val = sim_results.sweep_matrix(i,j);
+                    if val > median(sim_results.sweep_matrix(:))
+                        tc = [1 1 1];
+                    else
+                        tc = [0 0 0];
+                    end
+                    text(app.sweepAxes, devices_sweep(j), camp_days_sweep(i), ...
+                        sprintf('%.0f', val), 'HorizontalAlignment', 'center', ...
+                        'FontSize', 10, 'FontWeight', 'bold', 'Color', tc);
+                end
+            end
+            hold(app.sweepAxes, 'off');
+        end
+        
+        % ── Treatment Gap Bar Chart ──
+        cla(app.treatmentAxes);
+        treated = round(sim_results.patients_actually_treated);
+        gap = round(sim_results.treatment_gap);
+        total_need = round(sim_results.patients_needing_treatment);
+        
+        b = bar(app.treatmentAxes, [1 2 3], [total_need, treated, gap]);
+        b.FaceColor = 'flat';
+        b.CData = [T.accent; T.success; T.danger];
+        set(app.treatmentAxes, 'XTick', [1 2 3], ...
+            'XTickLabel', {'Need Care', 'Treated', 'Gap'});
+        ylabel(app.treatmentAxes, 'Patients');
+        title(app.treatmentAxes, 'Treatment Access');
+        grid(app.treatmentAxes, 'on');
+        
+        % Gap info text
+        gapStr = {};
+        gapStr{end+1} = 'Key Findings:';
+        gapStr{end+1} = '';
+        gapStr{end+1} = sprintf('Diabetic Pop: %s', formatNum(sim_results.diabetic_pop));
+        gapStr{end+1} = sprintf('Need treatment: %s', formatNum(total_need));
+        gapStr{end+1} = sprintf('Actually treated: %s', formatNum(treated));
+        gapStr{end+1} = sprintf('Adherence: %.1f%%', params.referral_adherence*100);
+        gapStr{end+1} = '';
+        gapStr{end+1} = sprintf('GAP: %s patients', formatNum(gap));
+        gapStr{end+1} = 'never get care!';
+        gapStr{end+1} = '';
+        gapStr{end+1} = sprintf('Patients/day: %d', round(sim_results.patients_per_camp_day));
+        gapStr{end+1} = sprintf('Escalated/day: %d', round(sim_results.escalated_per_day));
+        app.gapInfoLabel.Text = strjoin(gapStr, newline);
+        
+        % Summary text
         lines = {};
-        lines{end+1} = '=== Simulation Results ===';
-        lines{end+1} = sprintf('Diabetic population: %s', formatNum(sim_results.diabetic_pop));
+        lines{end+1} = '=== Detailed Results ===';
+        lines{end+1} = sprintf('Diabetic pop: %s', formatNum(sim_results.diabetic_pop));
         lines{end+1} = sprintf('Patients/month: %s', formatNum(sim_results.patients_per_month));
         lines{end+1} = sprintf('Months to screen: %.1f', sim_results.months_to_screen);
-        lines{end+1} = sprintf('Doctor utilization: %.1f%%', sim_results.doctor_utilization * 100);
+        lines{end+1} = sprintf('Doctor util: %.1f%%', sim_results.doctor_utilization*100);
+        lines{end+1} = sprintf('Bottleneck: %s', sim_results.bottleneck);
         lines{end+1} = '';
-        lines{end+1} = '=== Treatment Gap ===';
-        lines{end+1} = sprintf('Needing treatment/month: %.0f', sim_results.patients_needing_treatment);
-        lines{end+1} = sprintf('Actually treated/month: %.0f (%.1f%% adherence)', ...
-            sim_results.patients_actually_treated, params.referral_adherence * 100);
-        lines{end+1} = sprintf('TREATMENT GAP: %.0f patients/month never get care', sim_results.treatment_gap);
-        lines{end+1} = '';
-        lines{end+1} = sprintf('BOTTLENECK: %s', sim_results.bottleneck);
-        
+        lines{end+1} = sprintf('Treatment gap: %s/mo', formatNum(gap));
         app.simResultText.Value = lines;
+        
+        drawnow;
     catch ME
         app.simResultText.Value = {sprintf('Error: %s', ME.message)};
     end
