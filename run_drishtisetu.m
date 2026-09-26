@@ -651,38 +651,63 @@ function app = buildDistrictPanel(app)
     escTab = uitab(app.distTabGroup, 'Title', '  Escalation & Oversight  ', ...
         'BackgroundColor', T.bg);
     
-    % Grade Distribution Chart (left)
-    gradeBox = uipanel(escTab, 'Position', [12 310 640 420], ...
-        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
-        'Title', '', 'FontSize', 1);
-    uilabel(gradeBox, 'Position', [12 388 400 24], ...
-        'Text', 'Grade Distribution (AI Predictions)', ...
-        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
-    app.gradeDistAxes = uiaxes(gradeBox, 'Position', [30 20 580 360]);
-    xlabel(app.gradeDistAxes, 'ICDR Grade');
-    ylabel(app.gradeDistAxes, 'Number of Cases');
-    title(app.gradeDistAxes, 'DR Grade Distribution');
+    % -- Top: Escalation KPI Cards --
+    escKpiW = 230; escKpiH = 72;
+    escKpiColors = {[0.165 0.510 0.820], [0.086 0.608 0.290], ...
+                    [0.886 0.627 0.086], [0.816 0.133 0.133], [0.50 0.28 0.65]};
+    escKpiTitles = {'Total Reviewed', 'Confirmed', 'Overridden', 'Override Rate', 'Avg AI Confidence'};
     
-    % Override Analysis (right)
-    overrideBox = uipanel(escTab, 'Position', [664 310 614 420], ...
+    for k = 1:5
+        kx = 12 + (k-1)*(escKpiW+12);
+        ekpi = uipanel(escTab, 'Position', [kx 660 escKpiW escKpiH], ...
+            'BackgroundColor', escKpiColors{k}, 'BorderType', 'none');
+        uilabel(ekpi, 'Position', [10 46 220 20], ...
+            'Text', escKpiTitles{k}, 'FontSize', 10, 'FontColor', [1 1 1]);
+        app.escKpiValues(k) = uilabel(ekpi, 'Position', [10 4 220 42], ...
+            'Text', '--', 'FontSize', 26, 'FontWeight', 'bold', ...
+            'FontColor', [1 1 1]);
+    end
+    
+    % Grade Distribution: AI Grade vs Doctor Grade (left)
+    gradeBox = uipanel(escTab, 'Position', [12 305 640 345], ...
         'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
         'Title', '', 'FontSize', 1);
-    uilabel(overrideBox, 'Position', [12 388 400 24], ...
-        'Text', 'Doctor Override Analysis', ...
+    uilabel(gradeBox, 'Position', [12 315 580 24], ...
+        'Text', 'AI Grade vs Doctor Final Grade', ...
         'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
-    app.overrideAxes = uiaxes(overrideBox, 'Position', [30 20 554 360]);
-    title(app.overrideAxes, 'Confirmed vs Overridden');
+    app.gradeDistAxes = uiaxes(gradeBox, 'Position', [30 20 580 290]);
+    app.gradeDistAxes.XColor = [0.15 0.15 0.15];
+    app.gradeDistAxes.YColor = [0.15 0.15 0.15];
+    
+    % Doctor Decision Breakdown (right)
+    overrideBox = uipanel(escTab, 'Position', [664 305 614 345], ...
+        'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
+        'Title', '', 'FontSize', 1);
+    uilabel(overrideBox, 'Position', [12 315 580 24], ...
+        'Text', 'Doctor Decision Breakdown', ...
+        'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
+    app.overrideAxes = uiaxes(overrideBox, 'Position', [30 20 554 290]);
+    app.overrideAxes.XColor = [0.15 0.15 0.15];
+    app.overrideAxes.YColor = [0.15 0.15 0.15];
     
     % Escalation Log Details (bottom full width)
-    escLogBox = uipanel(escTab, 'Position', [12 8 1266 292], ...
+    escLogBox = uipanel(escTab, 'Position', [12 8 1266 290], ...
         'BackgroundColor', T.card, 'BorderType', 'line', 'BorderColor', T.border, ...
         'Title', '', 'FontSize', 1);
-    uilabel(escLogBox, 'Position', [12 260 400 24], ...
+    uilabel(escLogBox, 'Position', [12 258 400 24], ...
         'Text', 'Escalation Details & Triggers', ...
         'FontSize', 13, 'FontWeight', 'bold', 'FontColor', T.header);
-    app.escText = uitextarea(escLogBox, 'Position', [10 10 1246 246], ...
+    app.escText = uitextarea(escLogBox, 'Position', [10 10 1246 244], ...
         'FontSize', 11, 'Editable', 'off', ...
         'Value', {'Escalation data will appear after patients are processed.'});
+    
+    % ── Set dark axis colors on all axes for readability ──
+    darkAxis = [0.15 0.15 0.15];
+    allAxes = {app.sweepAxes, app.treatmentAxes, app.relDiagAxes};
+    for ai = 1:length(allAxes)
+        allAxes{ai}.XColor = darkAxis;
+        allAxes{ai}.YColor = darkAxis;
+    end
 end
 
 % ================================================================
@@ -1463,14 +1488,14 @@ function refreshDistrictDashboard(app)
             
             % Detailed metrics text
             metricsStr = {};
-            metricsStr{end+1} = '=== Model Validation Report ===';
+            metricsStr{end+1} = '---- Model Validation Report ----';
             metricsStr{end+1} = '';
             if isfield(m, 'sensitivity') && isfield(m, 'sensitivity_ci')
-                metricsStr{end+1} = sprintf('Sensitivity: %.1f%%', m.sensitivity*100);
+                metricsStr{end+1} = sprintf('Sensitivity: %.2f%%', m.sensitivity*100);
                 metricsStr{end+1} = sprintf('  95%% CI: [%.1f%%, %.1f%%]', m.sensitivity_ci(1)*100, m.sensitivity_ci(2)*100);
             end
             if isfield(m, 'specificity') && isfield(m, 'specificity_ci')
-                metricsStr{end+1} = sprintf('Specificity: %.1f%%', m.specificity*100);
+                metricsStr{end+1} = sprintf('Specificity: %.2f%%', m.specificity*100);
                 metricsStr{end+1} = sprintf('  95%% CI: [%.1f%%, %.1f%%]', m.specificity_ci(1)*100, m.specificity_ci(2)*100);
             end
             metricsStr{end+1} = '';
@@ -1479,6 +1504,9 @@ function refreshDistrictDashboard(app)
             end
             if isfield(m, 'accuracy')
                 metricsStr{end+1} = sprintf('Accuracy: %.1f%%', m.accuracy*100);
+            end
+            if isfield(m, 'f1_score')
+                metricsStr{end+1} = sprintf('F1 Score: %.2f%%', m.f1_score*100);
             end
             if isfield(m, 'qwk')
                 metricsStr{end+1} = sprintf('QWK (Kappa): %.4f', m.qwk);
@@ -1495,12 +1523,18 @@ function refreshDistrictDashboard(app)
                 end
             end
             metricsStr{end+1} = '';
+            if isfield(m, 'npv')
+                metricsStr{end+1} = sprintf('NPV: %.2f%%', m.npv*100);
+            end
+            if isfield(m, 'ppv')
+                metricsStr{end+1} = sprintf('PPV (Precision): %.2f%%', m.ppv*100);
+            end
+            metricsStr{end+1} = '';
             if isfield(m, 'n_samples')
                 metricsStr{end+1} = sprintf('Validated on %d samples', m.n_samples);
             end
-            if isfield(m, 'is_demo_data') && m.is_demo_data
-                metricsStr{end+1} = '';
-                metricsStr{end+1} = '(Demo data for display purposes)';
+            if isfield(m, 'dataset')
+                metricsStr{end+1} = sprintf('Dataset: %s', m.dataset);
             end
             app.metricsText.Value = metricsStr;
             
@@ -1538,6 +1572,7 @@ function refreshDistrictDashboard(app)
     
     % ── Load screening log (Tab 3: Escalation) ──
     logFile = fullfile(app.rootDir, 'data', 'screening_log.csv');
+    darkAxis = [0.15 0.15 0.15];
     if exist(logFile, 'file')
         try
             logData = readtable(logFile);
@@ -1546,103 +1581,172 @@ function refreshDistrictDashboard(app)
             nOverrides = sum(strcmp(logData.action, 'OVERRIDDEN'));
             overrideRate = nOverrides / max(nTotal, 1) * 100;
             
-            % ── Grade Distribution Bar Chart ──
-            if ismember('ai_grade', logData.Properties.VariableNames)
-                cla(app.gradeDistAxes);
-                gradeCounts = zeros(1, 5);
-                for g = 0:4
-                    gradeCounts(g+1) = sum(logData.ai_grade == g);
-                end
-                gradeColors = [0.30 0.69 0.29;   % Grade 0 - green
-                               0.60 0.80 0.20;   % Grade 1 - lime
-                               0.99 0.75 0.18;   % Grade 2 - amber
-                               0.96 0.49 0.00;   % Grade 3 - orange
-                               0.84 0.15 0.16];  % Grade 4 - red
-                hold(app.gradeDistAxes, 'on');
-                for g = 1:5
-                    bar(app.gradeDistAxes, g, gradeCounts(g), 0.6, ...
-                        'FaceColor', gradeColors(g,:), 'EdgeColor', 'none');
-                end
-                hold(app.gradeDistAxes, 'off');
-                set(app.gradeDistAxes, 'XTick', 1:5, ...
-                    'XTickLabel', {'G0 No DR', 'G1 Mild', 'G2 Mod', 'G3 Sev', 'G4 PDR'});
-                ylabel(app.gradeDistAxes, 'Number of Cases');
-                title(app.gradeDistAxes, 'DR Grade Distribution');
-                grid(app.gradeDistAxes, 'on');
+            % Average AI confidence
+            avgConf = 0;
+            if ismember('ai_pRef', logData.Properties.VariableNames)
+                avgConf = mean(logData.ai_pRef) * 100;
             end
             
-            % ── Override Analysis Pie Chart ──
+            % ── Populate Escalation KPI Cards ──
+            app.escKpiValues(1).Text = sprintf('%d', nTotal);
+            app.escKpiValues(2).Text = sprintf('%d', nConfirmed);
+            app.escKpiValues(3).Text = sprintf('%d', nOverrides);
+            app.escKpiValues(4).Text = sprintf('%.1f%%', overrideRate);
+            app.escKpiValues(5).Text = sprintf('%.1f%%', avgConf);
+            
+            % Color-code override rate card
+            if overrideRate > 15
+                app.escKpiValues(4).Parent.BackgroundColor = [0.816 0.133 0.133];
+            elseif overrideRate > 5
+                app.escKpiValues(4).Parent.BackgroundColor = [0.886 0.627 0.086];
+            else
+                app.escKpiValues(4).Parent.BackgroundColor = [0.086 0.608 0.290];
+            end
+            
+            % ── Grade Distribution: AI vs Doctor (grouped bar) ──
+            if ismember('ai_grade', logData.Properties.VariableNames) && ...
+               ismember('doctor_grade', logData.Properties.VariableNames)
+                cla(app.gradeDistAxes);
+                aiCounts = zeros(1, 5);
+                docCounts = zeros(1, 5);
+                for g = 0:4
+                    aiCounts(g+1) = sum(logData.ai_grade == g);
+                    docCounts(g+1) = sum(logData.doctor_grade == g);
+                end
+                
+                groupData = [aiCounts; docCounts]';
+                b = bar(app.gradeDistAxes, 1:5, groupData, 'grouped');
+                b(1).FaceColor = [0.27 0.51 0.71]; % AI = blue
+                b(2).FaceColor = [0.30 0.69 0.29]; % Doctor = green
+                
+                % Add count labels on top of bars
+                hold(app.gradeDistAxes, 'on');
+                for g = 1:5
+                    if aiCounts(g) > 0
+                        text(app.gradeDistAxes, g - 0.15, aiCounts(g) + 0.3, ...
+                            sprintf('%d', aiCounts(g)), 'HorizontalAlignment', 'center', ...
+                            'FontSize', 10, 'FontWeight', 'bold', 'Color', [0.2 0.4 0.6]);
+                    end
+                    if docCounts(g) > 0
+                        text(app.gradeDistAxes, g + 0.15, docCounts(g) + 0.3, ...
+                            sprintf('%d', docCounts(g)), 'HorizontalAlignment', 'center', ...
+                            'FontSize', 10, 'FontWeight', 'bold', 'Color', [0.2 0.55 0.2]);
+                    end
+                end
+                hold(app.gradeDistAxes, 'off');
+                
+                set(app.gradeDistAxes, 'XTick', 1:5, ...
+                    'XTickLabel', {'G0 No DR', 'G1 Mild', 'G2 Mod', 'G3 Severe', 'G4 PDR'});
+                ylabel(app.gradeDistAxes, 'Number of Cases');
+                legend(app.gradeDistAxes, {'AI Prediction', 'Doctor Final'}, 'Location', 'northwest');
+                
+                % Check agreement
+                nAgree = sum(logData.ai_grade == logData.doctor_grade);
+                agreeRate = nAgree / max(nTotal, 1) * 100;
+                title(app.gradeDistAxes, sprintf('Grade Comparison (AI-Doctor agreement: %.0f%%)', agreeRate), ...
+                    'Color', darkAxis);
+                grid(app.gradeDistAxes, 'on');
+                app.gradeDistAxes.XColor = darkAxis;
+                app.gradeDistAxes.YColor = darkAxis;
+            end
+            
+            % ── Doctor Decision Breakdown (vertical bars) ──
             cla(app.overrideAxes);
             if nTotal > 0
-                pieData = [nConfirmed, nOverrides];
-                pieLabels = {sprintf('Confirmed (%d)', nConfirmed), ...
-                             sprintf('Overridden (%d)', nOverrides)};
-                pieColors = [T.success; T.warning];
+                b = bar(app.overrideAxes, [1 2], [nConfirmed, nOverrides], 0.5);
+                b.FaceColor = 'flat';
+                b.CData = [T.success; T.warning];
                 
-                % Draw as horizontal stacked bar (more compact than pie)
-                barh(app.overrideAxes, 1, nConfirmed, 'FaceColor', T.success, 'EdgeColor', 'none');
+                % Add count labels on top
                 hold(app.overrideAxes, 'on');
-                barh(app.overrideAxes, 1, nOverrides, 'FaceColor', T.warning, ...
-                    'EdgeColor', 'none', 'BaseValue', nConfirmed);
-                % Add labels
-                if nConfirmed > 0
-                    text(app.overrideAxes, nConfirmed/2, 1, ...
-                        sprintf('Confirmed: %d', nConfirmed), ...
-                        'HorizontalAlignment', 'center', 'FontSize', 11, ...
-                        'FontWeight', 'bold', 'Color', 'w');
-                end
-                if nOverrides > 0
-                    text(app.overrideAxes, nConfirmed + nOverrides/2, 1, ...
-                        sprintf('Override: %d', nOverrides), ...
-                        'HorizontalAlignment', 'center', 'FontSize', 11, ...
-                        'FontWeight', 'bold', 'Color', 'w');
-                end
+                text(app.overrideAxes, 1, nConfirmed + 0.3, sprintf('%d', nConfirmed), ...
+                    'HorizontalAlignment', 'center', 'FontSize', 14, 'FontWeight', 'bold', ...
+                    'Color', [0.1 0.45 0.1]);
+                text(app.overrideAxes, 2, max(nOverrides, 0) + 0.3, sprintf('%d', nOverrides), ...
+                    'HorizontalAlignment', 'center', 'FontSize', 14, 'FontWeight', 'bold', ...
+                    'Color', [0.7 0.4 0.0]);
                 hold(app.overrideAxes, 'off');
-                ylim(app.overrideAxes, [0.4 1.6]);
-                set(app.overrideAxes, 'YTick', []);
-                xlabel(app.overrideAxes, 'Number of Cases');
-                title(app.overrideAxes, sprintf('Doctor Decisions (Override rate: %.1f%%)', overrideRate));
+                
+                set(app.overrideAxes, 'XTick', [1 2], ...
+                    'XTickLabel', {'Confirmed by Doctor', 'Overridden by Doctor'});
+                ylabel(app.overrideAxes, 'Number of Cases');
+                title(app.overrideAxes, sprintf('Doctor Decisions — Override rate: %.1f%%', overrideRate), ...
+                    'Color', darkAxis);
+                grid(app.overrideAxes, 'on');
+                
+                % Interpretation text
+                if overrideRate == 0
+                    % Add annotation for 100% agreement
+                    text(app.overrideAxes, 1.5, nConfirmed * 0.6, ...
+                        {'100% AI-Doctor', 'Agreement'}, ...
+                        'HorizontalAlignment', 'center', 'FontSize', 12, ...
+                        'FontWeight', 'bold', 'Color', T.success);
+                end
             else
-                title(app.overrideAxes, 'No doctor decisions yet');
+                title(app.overrideAxes, 'No doctor decisions yet', 'Color', darkAxis);
             end
+            app.overrideAxes.XColor = darkAxis;
+            app.overrideAxes.YColor = darkAxis;
             
             % ── Escalation Log Text ──
             escStr = {};
             escStr{end+1} = '=== Screening Log Summary ===';
-            escStr{end+1} = sprintf('Total cases reviewed: %d', nTotal);
-            escStr{end+1} = sprintf('  Confirmed: %d (%.0f%%)    |    Overridden: %d (%.0f%%)', ...
-                nConfirmed, nConfirmed/max(nTotal,1)*100, nOverrides, overrideRate);
+            escStr{end+1} = sprintf('Total escalated cases reviewed by doctor: %d', nTotal);
+            escStr{end+1} = sprintf('  Confirmed (AI grade accepted): %d (%.0f%%)', ...
+                nConfirmed, nConfirmed/max(nTotal,1)*100);
+            escStr{end+1} = sprintf('  Overridden (doctor changed grade): %d (%.0f%%)', ...
+                nOverrides, overrideRate);
             escStr{end+1} = '';
             
             if overrideRate > 15
-                escStr{end+1} = 'WARNING: Override rate > 15%! Model investigation recommended.';
+                escStr{end+1} = 'WARNING: Override rate > 15%! Model may need recalibration.';
+            elseif overrideRate == 0
+                escStr{end+1} = 'Override rate: 0.0% — Doctor agrees with AI on all cases. Model performing well.';
             else
                 escStr{end+1} = sprintf('Override rate: %.1f%% (threshold: <15%% — acceptable)', overrideRate);
             end
             escStr{end+1} = '';
             
-            % Grade details
+            % AI-Doctor agreement
+            if ismember('ai_grade', logData.Properties.VariableNames) && ...
+               ismember('doctor_grade', logData.Properties.VariableNames)
+                nAgree = sum(logData.ai_grade == logData.doctor_grade);
+                escStr{end+1} = sprintf('=== AI-Doctor Agreement: %d/%d (%.0f%%) ===', ...
+                    nAgree, nTotal, nAgree/max(nTotal,1)*100);
+                if nAgree == nTotal
+                    escStr{end+1} = '  Doctor confirmed AI predictions on every case.';
+                end
+                escStr{end+1} = '';
+            end
+            
+            % Grade breakdown
             grade_labels = {'No DR', 'Mild NPDR', 'Moderate NPDR', 'Severe NPDR', 'PDR'};
             if ismember('ai_grade', logData.Properties.VariableNames)
-                escStr{end+1} = '=== Grade Breakdown ===';
+                escStr{end+1} = '=== Grade Breakdown (Escalated Cases) ===';
                 for g = 0:4
                     cnt = sum(logData.ai_grade == g);
-                    escStr{end+1} = sprintf('  Grade %d (%s): %d cases', g, grade_labels{g+1}, cnt);
+                    if cnt > 0
+                        escStr{end+1} = sprintf('  Grade %d (%s): %d cases', g, grade_labels{g+1}, cnt);
+                    end
                 end
                 escStr{end+1} = '';
             end
             
             % Escalation triggers
-            escStr{end+1} = '=== Escalation Triggers ===';
+            escStr{end+1} = '=== Why Cases Were Escalated ===';
             if ismember('reason', logData.Properties.VariableNames)
                 ood_count = sum(contains(string(logData.reason), 'OOD', 'IgnoreCase', true));
                 border_count = sum(contains(string(logData.reason), 'Borderline', 'IgnoreCase', true));
                 discord_count = sum(contains(string(logData.reason), 'Discordant', 'IgnoreCase', true));
-                escStr{end+1} = sprintf('  OOD detected: %d', ood_count);
-                escStr{end+1} = sprintf('  Borderline pRef: %d', border_count);
-                escStr{end+1} = sprintf('  Discordant findings: %d', discord_count);
+                escStr{end+1} = sprintf('  Out-of-Distribution (OOD): %d cases', ood_count);
+                escStr{end+1} = sprintf('  Borderline referral probability: %d cases', border_count);
+                escStr{end+1} = sprintf('  Discordant findings (grade vs lesion count): %d cases', discord_count);
+                other_count = nTotal - ood_count - border_count - discord_count;
+                if other_count > 0
+                    escStr{end+1} = sprintf('  Other safety triggers: %d cases', other_count);
+                end
             else
-                escStr{end+1} = '  (Trigger details not available in log)';
+                escStr{end+1} = '  (Detailed trigger data not available)';
             end
             
             app.escText.Value = escStr;

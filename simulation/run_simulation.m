@@ -45,22 +45,62 @@ for i = 1:length(fields)
     params.(fields{i}) = custom_params.(fields{i});
 end
 
-% COMPUTED outputs
-sim_results.diabetic_pop = params.population * params.dm_prevalence;
-sim_results.patients_per_device_day = (params.hours_per_camp_day * 60) / params.minutes_per_patient;
-sim_results.patients_per_camp_day = sim_results.patients_per_device_day * params.devices_per_camp;
-sim_results.patients_per_month = sim_results.patients_per_camp_day * params.camp_days_per_month;
-sim_results.months_to_screen = sim_results.diabetic_pop / sim_results.patients_per_month;
+% ── SIMULINK INTEGRATION ──
+simulink_model = 'DrishtiSetu_Screening';
+sim_dir = fileparts(mfilename('fullpath'));
+if exist(fullfile(sim_dir, [simulink_model '.slx']), 'file') && license('test', 'Simulink')
+    % Push parameters to base workspace for Simulink to read
+    assignin('base', 'sim_pop', params.population);
+    assignin('base', 'sim_dm_prev', params.dm_prevalence);
+    assignin('base', 'sim_devices', params.devices_per_camp);
+    assignin('base', 'sim_camp_days', params.camp_days_per_month);
+    assignin('base', 'sim_adherence', params.referral_adherence);
+    
+    % Run the model
+    try
+        simOut = sim(simulink_model, 'ReturnWorkspaceOutputs', 'on');
+        
+        % Read outputs back from Simulink (extract scalar double from array or timeseries)
+        sim_results.diabetic_pop = extract_sim_value(simOut.out_diabetic_pop);
+        sim_results.patients_per_camp_day = extract_sim_value(simOut.out_patients_camp_day);
+        sim_results.patients_per_month = extract_sim_value(simOut.out_patients_month);
+        sim_results.months_to_screen = extract_sim_value(simOut.out_months_to_screen);
+        sim_results.escalated_per_day = extract_sim_value(simOut.out_escalated_day);
+        sim_results.doctor_utilization = extract_sim_value(simOut.out_doctor_util);
+        sim_results.patients_needing_treatment = extract_sim_value(simOut.out_patients_needing);
+        sim_results.patients_actually_treated = extract_sim_value(simOut.out_patients_treated);
+        sim_results.treatment_gap = extract_sim_value(simOut.out_treatment_gap);
+        
+        sim_results.patients_per_device_day = sim_results.patients_per_camp_day / params.devices_per_camp;
+        sim_results.doctor_minutes_per_day = sim_results.escalated_per_day * params.doctor_min_per_review;
+        
+        disp('Simulink model execution successful.');
+    catch ME
+        disp(['Simulink execution failed: ' ME.message '. Falling back to math model.']);
+        use_math_fallback = true;
+    end
+else
+    use_math_fallback = true;
+end
 
-sim_results.escalated_per_day = sim_results.patients_per_camp_day * params.escalation_rate;
-sim_results.doctor_minutes_per_day = sim_results.escalated_per_day * params.doctor_min_per_review;
-sim_results.doctor_utilization = sim_results.doctor_minutes_per_day / (params.doctor_hours_per_day * 60);
+if exist('use_math_fallback', 'var') && use_math_fallback
+    % COMPUTED outputs (Math fallback)
+    sim_results.diabetic_pop = params.population * params.dm_prevalence;
+    sim_results.patients_per_device_day = (params.hours_per_camp_day * 60) / params.minutes_per_patient;
+    sim_results.patients_per_camp_day = sim_results.patients_per_device_day * params.devices_per_camp;
+    sim_results.patients_per_month = sim_results.patients_per_camp_day * params.camp_days_per_month;
+    sim_results.months_to_screen = sim_results.diabetic_pop / sim_results.patients_per_month;
+
+    sim_results.escalated_per_day = sim_results.patients_per_camp_day * params.escalation_rate;
+    sim_results.doctor_minutes_per_day = sim_results.escalated_per_day * params.doctor_min_per_review;
+    sim_results.doctor_utilization = sim_results.doctor_minutes_per_day / (params.doctor_hours_per_day * 60);
+
+    sim_results.patients_needing_treatment = sim_results.diabetic_pop * referable_rate;
+    sim_results.patients_actually_treated = sim_results.patients_needing_treatment * params.referral_adherence;
+    sim_results.treatment_gap = sim_results.patients_needing_treatment - sim_results.patients_actually_treated;
+end
 
 sim_results.compute_hours_per_day = params.hours_per_camp_day * params.devices_per_camp; % rough estimate
-
-sim_results.patients_needing_treatment = sim_results.diabetic_pop * referable_rate;
-sim_results.patients_actually_treated = sim_results.patients_needing_treatment * params.referral_adherence;
-sim_results.treatment_gap = sim_results.patients_needing_treatment - sim_results.patients_actually_treated;
 
 % Bottleneck
 doctor_capacity_per_day = (params.doctor_hours_per_day * 60) / params.doctor_min_per_review;
@@ -79,6 +119,19 @@ for i = 1:length(camp_days_sweep)
     for j = 1:length(devices_sweep)
         ppm = ((params.hours_per_camp_day * 60) / params.minutes_per_patient) * devices_sweep(j) * camp_days_sweep(i);
         sweep_matrix(i, j) = sim_results.diabetic_pop / ppm;
+    end
+end
+
+function val = extract_sim_value(data)
+    % Extracts a scalar double from a Simulink output variable
+    if isa(data, 'timeseries')
+        val = double(data.Data(end));
+    elseif isnumeric(data)
+        val = double(data(end));
+    elseif isstruct(data) && isfield(data, 'signals')
+        val = double(data.signals.values(end));
+    else
+        val = 0; % Fallback
     end
 end
 sim_results.sweep_matrix = sweep_matrix;
