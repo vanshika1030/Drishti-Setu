@@ -312,7 +312,8 @@ The web dashboard provides three role-based views, each designed for a different
 ### Technician Panel — *"What the ASHA worker sees"*
 
 <p align="center">
-  <img src="docs/screenshots/technician_panel.png" alt="Technician Panel" width="85%" />
+  <img width="1600" height="983" alt="image" src="https://github.com/user-attachments/assets/28b0d87a-3557-461a-835a-1e1ae20f1c36" />
+
 </p>
 
 > Hindi UI · Consent checkboxes · ABHA ID · One-click capture · Real-time pipeline progress · Traffic-light result · Print PDF report
@@ -320,7 +321,8 @@ The web dashboard provides three role-based views, each designed for a different
 ### Doctor Panel — *"What the doctor reviews"*
 
 <p align="center">
-  <img src="docs/screenshots/doctor_panel.jpg" alt="Doctor Panel" width="85%" />
+  <img width="1600" height="984" alt="image" src="https://github.com/user-attachments/assets/5cf49c70-6ca7-4350-bee9-069cdf3bc0d9" />
+
 </p>
 
 > Escalated queue only · Enhanced + Overlay + Grad-CAM side-by-side · Counterfactual comparison · Full AI reasoning log · Confirm or Override (with mandatory reason)
@@ -328,7 +330,8 @@ The web dashboard provides three role-based views, each designed for a different
 ### District Simulation — *"How districts plan screening"*
 
 <p align="center">
-  <img src="docs/screenshots/district_simulation.png" alt="District Simulation" width="85%" />
+  <img width="1917" height="988" alt="image" src="https://github.com/user-attachments/assets/cdc6c06c-30eb-483c-9d91-5584653e7d47" />
+
 </p>
 
 > Coverage heatmap (months to screen vs devices × camp-days) · Treatment gap chart · Bottleneck identification · Configurable population parameters
@@ -336,7 +339,7 @@ The web dashboard provides three role-based views, each designed for a different
 ### Escalation Oversight — *"How we track AI accuracy"*
 
 <p align="center">
-  <img src="docs/screenshots/escalation_oversight.png" alt="Escalation Oversight" width="85%" />
+  <img width="1600" height="829" alt="image" src="https://github.com/user-attachments/assets/b3612295-2eb7-4c82-90a8-e04006b25ea8" />
 </p>
 
 > AI vs Doctor grade comparison · Override rate as drift alarm · 95% AI-Doctor agreement · Escalation trigger breakdown
@@ -344,7 +347,7 @@ The web dashboard provides three role-based views, each designed for a different
 ### Model Validation — *"Proof that confidence is honest"*
 
 <p align="center">
-  <img src="docs/screenshots/model_validation.png" alt="Model Validation" width="85%" />
+  <img width="1917" height="991" alt="image" src="https://github.com/user-attachments/assets/ea443e74-fca9-497b-9875-2744159833b9" />
 </p>
 
 > Reliability diagram (calibration plot) · ECE score · Sensitivity, specificity, AUROC, QWK with 95% CIs
@@ -413,11 +416,10 @@ Our most novel explainability feature: instead of just showing *where* the AI lo
 
 ## 📈 Model Performance
 
-### Confusion Matrix — 5-Class & Binary (Referable)
+<img width="477" height="198" alt="image" src="https://github.com/user-attachments/assets/010a698f-d322-46b8-a0bd-1ac66e96ecd8" />
 
-<p align="center">
-  <img src="docs/screenshots/confusion_matrix.jpg" alt="Confusion Matrix" width="85%" />
-</p>
+<img width="857" height="575" alt="image" src="https://github.com/user-attachments/assets/7c1aedd5-67b7-46f1-9bc5-8f559c7905f5" />
+
 
 ### Metrics Summary
 
