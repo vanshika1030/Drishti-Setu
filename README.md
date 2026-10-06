@@ -312,8 +312,7 @@ The web dashboard provides three role-based views, each designed for a different
 ### Technician Panel — *"What the ASHA worker sees"*
 
 <p align="center">
-  <img width="1600" height="983" alt="image" src="https://github.com/user-attachments/assets/28b0d87a-3557-461a-835a-1e1ae20f1c36" />
-
+  <img width="1645" height="1017" alt="image" src="https://github.com/user-attachments/assets/deb011e7-a2c2-419e-9c2a-44049dafc0e6" />
 </p>
 
 > Hindi UI · Consent checkboxes · ABHA ID · One-click capture · Real-time pipeline progress · Traffic-light result · Print PDF report
