@@ -399,9 +399,6 @@ flowchart TD
 
 Our most novel explainability feature: instead of just showing *where* the AI looked, we prove *whether* the AI was right.
 
-<p align="center">
-  <img src="docs/screenshots/counterfactual_demo.jpg" alt="Counterfactual Test Demo" width="85%" />
-</p>
 
 **How it works:**
 1. Take the original fundus image (Grade 3 — Severe)
